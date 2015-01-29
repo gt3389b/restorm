@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.3(beta)
+---------
+
+- Removing distribute dependence
+
 0.2
 ---
 **December 4, 2012**

@@ -2,8 +2,10 @@
     :alt: Build Status
     :target: http://travis-ci.org/joeribekker/restorm
 
-RestORM
-=======
+RestORM-setuptools
+==================
+
+**This is a fork to RestORM egg**
 
 RestORM allows you to interact with resources as if they were objects (object
 relational mapping), mock an entire API and incorporate custom client logic.
@@ -111,8 +113,8 @@ Installation
 
 RestORM is on PyPI, so you can simply use::
 
-    $ pip install restorm
+    $ pip install restorm-setuptools
 
 If you want the latest development version, get the code from Github::
 
-    $ pip install -e git+git://github.com/joeribekker/restorm.git#egg=restorm
+    $ pip install -e git+git://github.com/goinnn/restorm.git#egg=restorm

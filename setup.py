@@ -47,7 +47,7 @@ setup(
     author_email='joeri@maykinmedia.nl',
     license='MIT',
     platforms=['any'],
-    url='http://github.com/joeribekker/restorm',
+    url='http://github.com/goinnn/restorm',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
