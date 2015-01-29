@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-from distribute_setup import use_setuptools
-use_setuptools()
-
 import os
 import sys
 import restorm
@@ -33,7 +30,7 @@ if sys.version_info < (2,6):
 
 
 setup(
-    name='restorm',
+    name='restorm-setuptools',
     version='.'.join(map(str, restorm.__version__)),
 
     # Packaging.
