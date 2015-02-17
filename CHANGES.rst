@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.3.0
+-----
+
+- Fix pypi error
+
 0.3(beta)
 ---------
 
