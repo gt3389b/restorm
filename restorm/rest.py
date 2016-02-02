@@ -1,4 +1,4 @@
-from restorm.clients.jsonclient import json
+from restorm.clients.jsonclient import JSONClient
 
 
 class RestObject(object):
@@ -19,9 +19,9 @@ class RestObject(object):
 
         new_class = type('Dynamic%s' % cls.__name__, (cls,), related_resources)
         return super(RestObject, cls).__new__(new_class)
-    
+
     def __init__(self, data=None, **kwargs):
-        
+
         if data is not None:
             self._obj = data
         else:
@@ -50,14 +50,21 @@ class RestObject(object):
 def restify(data, resource):
     """
     Turns Python objects (dict, list, etc) into Rest objects.
-    
+
     :param data: Any Python object.
     :param resource: The resource this data belongs to.
 
-    :return: Rest objects. 
+    :return: Rest objects.
     """
     def rest_object(dct):
         return RestObject(dct, resource=resource)
-    
-    json_data = json.dumps(data)
-    return json.loads(json_data, object_hook=rest_object)
+
+    if isinstance(resource.client, JSONClient):
+        serialize = resource.client.serialize
+        deserialize = resource.client.deserialize
+    else:
+        serialize = JSONClient().serialize
+        deserialize = JSONClient().deserialize
+
+    json_data = serialize(data)
+    return deserialize(json_data, object_hook=rest_object)
