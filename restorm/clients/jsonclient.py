@@ -33,10 +33,14 @@ class JSONClientMixin(ClientMixin):
         if data is None:
             return ''
         return json.dumps(data, cls=CustomEncoder)
-    
-    def deserialize(self, data):
+
+    def deserialize(self, data, object_hook=None):
         if data == '':
             return None
+        if object_hook:
+            return json.loads(data,
+                              parse_float=Decimal,
+                              object_hook=object_hook)
         return json.loads(data, parse_float=Decimal)
 
 
