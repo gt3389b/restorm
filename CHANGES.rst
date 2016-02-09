@@ -1,6 +1,12 @@
 Changes
 =======
 
+0.3.1
+-----
+
+- Fixed decimal serialization error. Improved restify method to use the resource client or JSONClient to avoid decimal errors.
+
+
 0.3.0
 -----
 
