@@ -1,76 +1,17 @@
-# import urllib
-# import re
+from collections import OrderedDict
 import sys
 
 from django.apps import apps
 from django.apps.config import MODELS_MODULE_NAME
 from django.core.exceptions import ImproperlyConfigured
 # from django.utils.text import camel_case_to_spaces
+from django.utils import six
 
 from restorm.conf import settings
 from restorm.exceptions import RestServerException
 from restorm.rest import restify
 from restorm.managers import ResourceManager, ResourceManagerDescriptor
-
-
-class RelatedResource(object):
-    def __init__(self, field, resource):
-        self._field = field
-        self._resource = resource
-        self._client = resource.client
-
-    def _create_new_class(self, name):
-        # FIXME: This will be a RestResource!
-        class_name = name.title().replace('_', '')
-        return type(
-            str('%sResource' % class_name),
-            (Resource,),
-            {'__module__': '%s.auto' % Resource.__module__}
-        )
-
-    def __get__(self, instance, instance_type=None):
-        if instance is None:
-            return self
-
-        if not hasattr(instance, '_cache_%s' % self._field):
-            absolute_url = instance[self._field]
-            response = self._client.get(absolute_url)
-            if response.status_code == 404:
-                return None
-            elif response.status_code not in [200, 304]:
-                raise RestServerException('Cannot get "%s" (%d): %s' % (
-                    absolute_url, response.status_code, response.content))
-
-            resource_class = self._create_new_class(self._field)
-            setattr(
-                instance,
-                '_cache_%s' % self._field,
-                resource_class(
-                    response.content,
-                    client=self._client,
-                    absolute_url=absolute_url
-                )
-            )
-
-        return getattr(instance, '_cache_%s' % self._field, None)
-
-    def __set__(self, instance, value):
-        if instance is None:
-            raise AttributeError(
-                '%s must be accessed via instance' % self._field.name)
-
-        if isinstance(value, dict):
-            absolute_url = instance[self._field]
-            response = self._client.put(absolute_url, value)
-            if response.status_code not in [200, 201, 304]:
-                raise RestServerException('Cannot put "%s" (%d): %s' % (
-                    absolute_url, response.status_code, response.content))
-
-            resource_class = self._create_new_class(self._field)
-            setattr(instance, '_cache_%s' % self._field, resource_class(
-                value, client=self._client, absolute_url=absolute_url))
-        else:
-            setattr(instance, '_cache_%s' % self._field, value)
+from restorm.fields import Field
 
 
 class DictObject(object):
@@ -194,7 +135,7 @@ class ResourceOptions(object):
         return "{}s".format(self.verbose_name)
 
     def get_field(self, field):
-        field = self.schema.get('field', {})
+        field = self.schema.get(field, {})
         return DictObject(field)
 
 
@@ -212,9 +153,20 @@ class ResourceBase(type):
             # special.
             return super_new(cls, name, bases, attrs)
 
-        # Create the class and strip all its attributes, except the module.
-#        module = attrs.pop('__module__')
-#        new_class = super_new(cls, name, bases, {'__module__': module})
+        attrs['__ordered__'] = [
+            key for key in attrs.keys() if key not in (
+                '__module__', '__qualname__')]
+
+        current_fields = []
+        for key, value in list(attrs.items()):
+            if isinstance(value, Field):
+                if getattr(value, '_field', None) is None:
+                    setattr(value, '_field', key)
+                current_fields.append((key, value))
+                attrs.pop(key)
+        current_fields.sort(key=lambda x: x[1].creation_counter)
+        attrs['declared_fields'] = OrderedDict(current_fields)
+
         new_class = super_new(cls, name, bases, attrs)
 
         # Create the meta class.
@@ -269,6 +221,24 @@ class ResourceBase(type):
         # classes and not on instances.
         new_class.objects = ResourceManagerDescriptor(manager)
 
+        # Walk through the MRO.
+        declared_fields = OrderedDict()
+        for base in reversed(new_class.__mro__):
+            # Collect fields from base class.
+            if hasattr(base, 'declared_fields'):
+                declared_fields.update(base.declared_fields)
+
+            # Field shadowing.
+            for attr, value in base.__dict__.items():
+                if value is None and attr in declared_fields:
+                    declared_fields.pop(attr)
+        for attr, value in declared_fields.items():
+            setattr(new_class, attr, value)
+        new_class.base_fields = declared_fields
+        new_class.declared_fields = declared_fields
+
+        setattr(new_class._meta, '_fields', declared_fields)
+
         return new_class
 
     @property
@@ -314,16 +284,16 @@ class Resource(object):
     def _get_pk_val(self):
         return self.data['id']
 
-    def __getattr__(self, name):
-        try:
-            return super(Resource, self).__getattr__(name)
-        except:
-            if 'data' in self.__dict__:
-                if name == 'pk':
-                    name = 'id'
-                return self.__dict__['data'][name]
-            else:
-                raise
+    # def __getattr__(self, name):
+    #     try:
+    #         return super(Resource, self).__getattr__(name)
+    #     except:
+    #         if 'data' in self.__dict__:
+    #             if name == 'pk':
+    #                 name = 'id'
+    #             return self.__dict__['data'][name]
+    #         else:
+    #             raise
 
     def serializable_value(self, name):
         return self.__dict__['data'][name]

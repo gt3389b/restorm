@@ -6,7 +6,7 @@ class RestObject(object):
     A ``dict``-like object without the convenience methods.
     """
     def __new__(cls, data=None, *args, **kwargs):
-        from resource import RelatedResource
+        from .fields.related import RelatedResource
 
         resource = kwargs.get('resource')
         related_resources = {}

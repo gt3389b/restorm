@@ -143,12 +143,14 @@ class RestQuerySet(object):
             raise RestServerException('Cannot get "%s" (%d): %s' % (
                 response.request.uri, response.status_code, response.content))
 
-        data = self._item_pattern.clean(response)
-        return self.model(
-            data, client=self._client, absolute_url=response.request.uri)
+        # data = self._item_pattern.clean(response)
+        return response
 
     def get(self, **kwargs):
-        obj = self._request_item(**kwargs)
+        response = self._request_item(**kwargs)
+        obj = self.model(
+            response.content, client=self._client,
+            absolute_url=response.request.uri)
         return obj
 
     def count(self):
