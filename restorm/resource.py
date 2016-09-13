@@ -282,18 +282,7 @@ class Resource(object):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())
 
     def _get_pk_val(self):
-        return self.data['id']
-
-    # def __getattr__(self, name):
-    #     try:
-    #         return super(Resource, self).__getattr__(name)
-    #     except:
-    #         if 'data' in self.__dict__:
-    #             if name == 'pk':
-    #                 name = 'id'
-    #             return self.__dict__['data'][name]
-    #         else:
-    #             raise
+        return self.data[self._meta.pk.attname]
 
     def serializable_value(self, name):
         return self.__dict__['data'][name]
