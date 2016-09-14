@@ -16,7 +16,7 @@ class RestQuerySet(object):
         self._pages_fetched = {}
         self._result_cache = {}
         # FIXME NOW
-        self._page_size = 25
+        self._page_size = model._meta.page_size
         self._item_pattern = ResourcePattern.parse(self.model._meta.item)
 
 
@@ -36,33 +36,44 @@ class RestQuerySet(object):
         return response
 
     def _page_for_index(self, index):
-        offset = index % self._page_size
-        page = (index / self._page_size)
-        # if index and offset:
-        #     page -= 1
+        if self._page_size:
+            # offset = index % self._page_size
+            page = (index / self._page_size)
+            # if index and offset:
+            #     page -= 1
+        else:
+            page = 0
         return page
 
     def _fetch_page(self, page):
         if page in self._pages_fetched:
             return
         params = self.query.copy()
-        params.update({
-            'page_size': self._page_size,
-            'page': page + 1
-        })
+        if self._page_size:
+            params.update({
+                'page_size': self._page_size,
+                'page': page + 1
+            })
         result = self._request_list(query=params)
         content = result.content
-        objects = content.pop('results')
-        self._pages_fetched[page] = content
-        offset_from = page * self._page_size
+        if self._page_size:
+            objects = content.pop('results')
+            self._pages_fetched[page] = content
+            offset_from = page * self._page_size
+        else:
+            objects = content
+            offset_from = 0
         for i, r in enumerate(objects):
             self._result_cache[offset_from + i] = self.model(r)
 
     def _fetch_all(self):
-        count = self.count()
-        pages = count / self._page_size
-        if count % self._page_size:
-            pages += 1
+        if self._page_size:
+            count = self.count()
+            pages = count / self._page_size
+            if count % self._page_size:
+                pages += 1
+        else:
+            pages = 1
         for page in range(pages):
             self._fetch_page(page)
 
@@ -106,7 +117,6 @@ class RestQuerySet(object):
         return iter(self._result_cache.values())
 
     def __bool__(self):
-        self._fetch_page(1)
         return bool(self.count())
 
     def get_queryset(self):
@@ -154,10 +164,13 @@ class RestQuerySet(object):
         return obj
 
     def count(self):
-        # if not(has_atrr)self._request_list({})
         _page = 0
         self._fetch_page(_page)
-        return self._pages_fetched[_page].get('count')
+        if self._page_size:
+            count = self._pages_fetched[_page].get('count')
+        else:
+            count = len(self._result_cache)
+        return count
 
     def __len__(self):
         return self.count()

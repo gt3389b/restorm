@@ -34,7 +34,7 @@ class DictObject(object):
 class ResourceOptions(object):
     DEFAULT_NAMES = (
         'list', 'item', 'root', 'app_label', 'resource_name', 'verbose_name',
-        'client', 'app_config', 'schema')
+        'client', 'app_config', 'paginated')
 
     def __init__(self, meta, app_label=None):
         # Represents this Resource's list URI pattern. For example: A list of
@@ -51,6 +51,9 @@ class ResourceOptions(object):
         # might be found on http://search.localhost/api/. If so, set root to
         # this different URL.
         self.root = ''
+
+        self.page_size = None
+        self.page_size_param = None
 
         # Lets make Django think this is an actual Model
         self._get_fields_cache = {}
@@ -98,7 +101,6 @@ class ResourceOptions(object):
         self.default_related_name = None
 
         self.client = None
-        self.schema = {}
 
         # Next, apply any overridden values from 'class Meta'.
         # TODO: This might be a good place to store ResourcePatterns.
@@ -135,7 +137,7 @@ class ResourceOptions(object):
         return "{}s".format(self.verbose_name)
 
     def get_field(self, field):
-        field = self.schema.get(field, {})
+        field = self._fields.get(field, {})
         return DictObject(field)
 
 

@@ -62,3 +62,7 @@ class CharField(Field):
 
     def clean(self, value):
         return unicode(value)
+
+
+class URLField(CharField):
+    pass

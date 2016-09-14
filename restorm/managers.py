@@ -19,9 +19,11 @@ class ResourceManagerDescriptor(object):
 
 
 class ResourceManager(object):
-    queryset_class = RestQuerySet
 
-    def __init__(self):
+    def __init__(self, queryset_class=None):
+        if queryset_class is None:
+            queryset_class = RestQuerySet
+        self.queryset_class = queryset_class
         self.object_class = None
 
     @property
@@ -62,14 +64,12 @@ class ResourceManager(object):
         rp = ResourcePattern.parse(self.options.list)
         absolute_url = rp.get_absolute_url(root=self.options.root)
 
-        response = self._client.post(absolute_url, kwargs)
+        response = self.object_class.Meta.client.post(absolute_url, kwargs)
 
         # Although 201 is the best HTTP status code for a valid POST response.
         if response.status_code in [200, 201, 204]:
-            if 'Location' in response:
-                return self.get(self._client, uri=response['Location'])
-            elif response.content:
-                return response.content
+            if response.content:
+                return self.object_class(data=response.content)
             else:
                 return None
         else:
