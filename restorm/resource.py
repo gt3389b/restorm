@@ -3,7 +3,7 @@ import sys
 
 from django.apps import apps
 from django.apps.config import MODELS_MODULE_NAME
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 # from django.utils.text import camel_case_to_spaces
 from django.utils import six
 
@@ -137,8 +137,11 @@ class ResourceOptions(object):
         return "{}s".format(self.verbose_name)
 
     def get_field(self, field):
-        field = self._fields.get(field, {})
-        return DictObject(field)
+        try:
+            field = self._fields[field]
+        except KeyError:
+            raise FieldDoesNotExist
+        return field
 
 
 class ResourceBase(type):

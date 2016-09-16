@@ -16,6 +16,7 @@ def _default_get_itm_params(data, resource):
 class RelatedResource(Field):
     def __init__(self, field, resource, get_itm_params=None, **kwargs):
         super(RelatedResource, self).__init__(**kwargs)
+        self.is_relation = True
         self._field = field
         if isinstance(resource, basestring):
             def lazy_resource(resource_str):
