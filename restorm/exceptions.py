@@ -8,3 +8,7 @@ class ResourceException(RestException):
 
 class RestServerException(RestException):
     pass
+
+
+class DoesNotExist(RestException):
+    pass

@@ -7,7 +7,10 @@ from .base import Field
 
 
 def _default_get_itm_params(data, resource):
-    value = data[resource._meta.pk.attname]
+    if type(data) == dict:
+        value = data[resource._meta.pk.attname]
+    else:
+        value = data
     return {
         resource._meta.pk.attname: value
     }
@@ -18,6 +21,7 @@ class RelatedResource(Field):
         super(RelatedResource, self).__init__(**kwargs)
         self.is_relation = True
         self._field = field
+        self.name = field
         if isinstance(resource, basestring):
             def lazy_resource(resource_str):
                 def import_resource():

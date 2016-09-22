@@ -34,7 +34,7 @@ class DictObject(object):
 class ResourceOptions(object):
     DEFAULT_NAMES = (
         'list', 'item', 'root', 'app_label', 'resource_name', 'verbose_name',
-        'client', 'app_config', 'paginated')
+        'client', 'app_config', 'page_size', 'page_size_param')
 
     def __init__(self, meta, app_label=None):
         # Represents this Resource's list URI pattern. For example: A list of
@@ -61,6 +61,7 @@ class ResourceOptions(object):
         self.local_fields = []
         self.local_many_to_many = []
         self.virtual_fields = []
+        self.many_to_many = []
         # self.verbose_name = None
         # self.verbose_name_plural = None
         # self.db_table = ''
@@ -167,6 +168,7 @@ class ResourceBase(type):
             if isinstance(value, Field):
                 if getattr(value, '_field', None) is None:
                     setattr(value, '_field', key)
+                    setattr(value, 'name', key)
                 current_fields.append((key, value))
                 attrs.pop(key)
         current_fields.sort(key=lambda x: x[1].creation_counter)
@@ -237,12 +239,20 @@ class ResourceBase(type):
             for attr, value in base.__dict__.items():
                 if value is None and attr in declared_fields:
                     declared_fields.pop(attr)
+        primary_key = None
         for attr, value in declared_fields.items():
             setattr(new_class, attr, value)
+            if value.primary:
+                if primary_key is not None:
+                    raise ImproperlyConfigured('Multiple primary keys.')
+                else:
+                    setattr(new_class, '_pk_attr', attr)
         new_class.base_fields = declared_fields
         new_class.declared_fields = declared_fields
 
         setattr(new_class._meta, '_fields', declared_fields)
+        setattr(new_class._meta, 'concrete_fields', declared_fields)
+        setattr(new_class, 'DoesNotExist', RestServerException)
 
         return new_class
 
@@ -274,7 +284,7 @@ class Resource(object):
 
     objects = None
 
-    def __init__(self, data=None, client=None, absolute_url=None):
+    def __init__(self, data={}, client=None, absolute_url=None):
         self.client = client
         self.absolute_url = absolute_url
 
@@ -289,8 +299,19 @@ class Resource(object):
     def _get_pk_val(self):
         return self.data[self._meta.pk.attname]
 
+    @property
+    def pk(self):
+        if getattr(self, '_pk_attr', None):
+            return getattr(self, self._pk_attr, None)
+
     def serializable_value(self, name):
         return self.__dict__['data'][name]
+
+    def full_clean(self, *args, **kwargs):
+        pass
+
+    def validate_unique(self, *args, **kwargs):
+        pass
 
     def save(self):
         """
@@ -300,6 +321,13 @@ class Resource(object):
         freedom of API implementations. If there is a body in the response, the
         contents of this body is returned, otherwise ``None``.
         """
+
+        if self.absolute_url is None:
+            data = self.__class__.objects.create(**self.data._obj)
+            if data:
+                self.data = data
+                # FIXME generate absolute_url
+            return data
 
         response = self.client.put(self.absolute_url, self.data)
 

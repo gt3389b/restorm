@@ -15,10 +15,8 @@ class RestQuerySet(object):
         self._client = client
         self._pages_fetched = {}
         self._result_cache = {}
-        # FIXME NOW
         self._page_size = model._meta.page_size
         self._item_pattern = ResourcePattern.parse(self.model._meta.item)
-
 
     def _request_list(self, query=None, uri=None, **kwargs):
         rp = ResourcePattern.parse(self.model._meta.list)
@@ -64,7 +62,10 @@ class RestQuerySet(object):
             objects = content
             offset_from = 0
         for i, r in enumerate(objects):
-            self._result_cache[offset_from + i] = self.model(r)
+            # assert False, type(r)
+            # absolute_url = i
+            self._result_cache[offset_from + i] = self.model(
+                data=r)
 
     def _fetch_all(self):
         if self._page_size:
