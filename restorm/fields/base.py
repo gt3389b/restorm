@@ -188,6 +188,10 @@ class Field(object):
 class BooleanField(Field):
     empty_strings_allowed = False
 
+    def __init__(self, *args, **kwargs):
+        kwargs['blank'] = True
+        super(BooleanField, self).__init__(*args, **kwargs)
+
     def clean(self, instance, value):
         return bool(value)
 
@@ -234,6 +238,14 @@ class CharField(Field):
         defaults = {'max_length': self.max_length}
         defaults.update(kwargs)
         return super(CharField, self).formfield(**defaults)
+
+
+class DateField(CharField):
+    pass
+
+
+class DateTimeField(DateField):
+    pass
 
 
 class URLField(CharField):

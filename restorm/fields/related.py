@@ -1,3 +1,4 @@
+from django import forms
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
@@ -85,7 +86,13 @@ class RelatedResource(Field):
 
 
 class ToOneField(RelatedResource):
-    pass
+    def formfield(self, **kwargs):
+        defaults = {
+            'form_class': forms.TypedChoiceField,
+            'choices': [[obj.pk, obj.__unicode__()] for obj in self._resource._default_manager.get_queryset()],
+        }
+        defaults.update(kwargs)
+        return super(ToOneField, self).formfield(**defaults)
 
 
 class ToManyField(RelatedResource):
