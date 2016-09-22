@@ -35,7 +35,7 @@ class XMLClientMixin(ClientMixin):
             'Accept': self.MIME_TYPE,
             'Content-Type': self.MIME_TYPE,
         })
-        
+
         return super(XMLClientMixin, self).create_request(uri, method, body, headers)
 
     def create_response(self, response_headers, response_content, request):
@@ -43,7 +43,7 @@ class XMLClientMixin(ClientMixin):
 
         if 'Content-Type' in response and response['Content-Type'].startswith(self.MIME_TYPE):
             response.content = etree.fromstring(response.content)
-            
+
         return response
 
     def get(self, uri):

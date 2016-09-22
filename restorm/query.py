@@ -80,7 +80,7 @@ class RestQuerySet(object):
 
     def _pages_for_slice(self, start, stop, step):
         from_page = self._page_for_index(start)
-        to_page = self._page_for_index(stop-1)
+        to_page = self._page_for_index(stop - 1)
         return range(from_page, to_page + 1)
 
     def __get_slice__(self, start, stop, step):
