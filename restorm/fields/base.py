@@ -73,22 +73,22 @@ class Field(object):
     def verbose_name(self):
         verbose_name = self._verbose_name
         if verbose_name is None:
-            verbose_name = self._field.replace('_', ' ')
+            verbose_name = self.attname.replace('_', ' ')
         return verbose_name
 
     def __get__(self, instance, instance_type=None):
         if instance is None:
             return self
 
-        if not hasattr(instance, '_cache_%s' % self._field):
+        if not hasattr(instance, '_cache_%s' % self.attname):
             try:
-                value = instance.data[self._field]
+                value = instance.data[self.attname]
             except (KeyError, TypeError):
                 value = self.default
 
-            setattr(instance, '_cache_%s' % self._field, value)
+            setattr(instance, '_cache_%s' % self.attname, value)
 
-        return getattr(instance, '_cache_%s' % self._field, None)
+        return getattr(instance, '_cache_%s' % self.attname, None)
 
     def clean(self, instance, value):
         return value
@@ -96,14 +96,14 @@ class Field(object):
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError(
-                '%s must be accessed via instance' % self._field.name)
+                '%s must be accessed via instance' % self.attname.name)
         if not self.editable:
             raise AttributeError('%s is not editable!')
 
         value = self.clean(instance, value)
 
-        setattr(instance, '_cache_%s' % self._field, value)
-        instance.data[self._field] = value
+        setattr(instance, '_cache_%s' % self.attname, value)
+        instance.data[self.attname] = value
 
     def value_from_object(self, instance):
         return self.__get__(instance)

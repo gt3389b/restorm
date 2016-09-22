@@ -75,12 +75,6 @@ class ResourceOptions(object):
         # self.db_tablespace = settings.DEFAULT_TABLESPACE
         self.meta = meta
 
-        # FIXME NOW!
-        class Pk(object):
-            attname = 'id'
-
-        self.pk = Pk()
-
         self.has_auto_field = False
         self.auto_field = None
         self.abstract = False
@@ -144,6 +138,10 @@ class ResourceOptions(object):
             raise FieldDoesNotExist
         return field
 
+    @property
+    def pk(self):
+        return self._fields[self._pk_attr]
+
 
 class ResourceBase(type):
     """
@@ -166,8 +164,9 @@ class ResourceBase(type):
         current_fields = []
         for key, value in list(attrs.items()):
             if isinstance(value, Field):
-                if getattr(value, '_field', None) is None:
-                    setattr(value, '_field', key)
+                if getattr(value, 'attname', None) is None:
+                    # setattr(value, '_field', key)
+                    setattr(value, 'attname', key)
                     setattr(value, 'name', key)
                 current_fields.append((key, value))
                 attrs.pop(key)
@@ -246,7 +245,7 @@ class ResourceBase(type):
                 if primary_key is not None:
                     raise ImproperlyConfigured('Multiple primary keys.')
                 else:
-                    setattr(new_class, '_pk_attr', attr)
+                    setattr(new_class._meta, '_pk_attr', attr)
         new_class.base_fields = declared_fields
         new_class.declared_fields = declared_fields
 
@@ -301,8 +300,8 @@ class Resource(object):
 
     @property
     def pk(self):
-        if getattr(self, '_pk_attr', None):
-            return getattr(self, self._pk_attr, None)
+        if getattr(self._meta, '_pk_attr', None):
+            return getattr(self, self._meta._pk_attr, None)
 
     def serializable_value(self, name):
         return self.__dict__['data'][name]

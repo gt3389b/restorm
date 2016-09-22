@@ -21,7 +21,7 @@ class RelatedResource(Field):
     def __init__(self, field, resource, get_itm_params=None, **kwargs):
         super(RelatedResource, self).__init__(**kwargs)
         self.is_relation = True
-        self._field = field
+        self.attname = field
         self.name = field
         if isinstance(resource, basestring):
             def lazy_resource(resource_str):
@@ -53,36 +53,36 @@ class RelatedResource(Field):
         if instance is None:
             return self
 
-        if not hasattr(instance, '_cache_%s' % self._field):
+        if not hasattr(instance, '_cache_%s' % self.attname):
             itm_params = self._get_itm_params(
-                instance.data[self._field], self._resource)
+                instance.data[self.attname], self._resource)
             itm = self._resource.objects.get(**itm_params)
             setattr(
                 instance,
-                '_cache_%s' % self._field,
+                '_cache_%s' % self.attname,
                 itm
             )
 
-        return getattr(instance, '_cache_%s' % self._field, None)
+        return getattr(instance, '_cache_%s' % self.attname, None)
 
     def __set__(self, instance, value):
         # FIXME : this doesn't work anymore
         if instance is None:
             raise AttributeError(
-                '%s must be accessed via instance' % self._field.name)
+                '%s must be accessed via instance' % self.attname.name)
 
         if isinstance(value, dict):
-            absolute_url = instance[self._field]
+            absolute_url = instance[self.attname]
             response = self._client.put(absolute_url, value)
             if response.status_code not in [200, 201, 304]:
                 raise RestServerException('Cannot put "%s" (%d): %s' % (
                     absolute_url, response.status_code, response.content))
 
-            resource_class = self._create_new_class(self._field)
-            setattr(instance, '_cache_%s' % self._field, resource_class(
+            resource_class = self._create_new_class(self.attname)
+            setattr(instance, '_cache_%s' % self.attname, resource_class(
                 value, client=self._client, absolute_url=absolute_url))
         else:
-            setattr(instance, '_cache_%s' % self._field, value)
+            setattr(instance, '_cache_%s' % self.attname, value)
 
 
 class ToOneField(RelatedResource):
@@ -100,8 +100,8 @@ class ToManyField(RelatedResource):
         if instance is None:
             return self
 
-        if not hasattr(instance, '_cache_%s' % self._field):
-            raw_data = instance.data[self._field]
+        if not hasattr(instance, '_cache_%s' % self.attname):
+            raw_data = instance.data[self.attname]
 
             def lazy_wrap(resource, itm_params):
                 def get_obj():
@@ -115,8 +115,8 @@ class ToManyField(RelatedResource):
             ]
             setattr(
                 instance,
-                '_cache_%s' % self._field,
+                '_cache_%s' % self.attname,
                 related_list
             )
 
-        return getattr(instance, '_cache_%s' % self._field, None)
+        return getattr(instance, '_cache_%s' % self.attname, None)
