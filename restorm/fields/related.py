@@ -56,7 +56,11 @@ class RelatedResource(Field):
         if not hasattr(instance, '_cache_%s' % self.attname):
             itm_params = self._get_itm_params(
                 instance.data[self.attname], self._resource)
-            itm = self._resource.objects.get(**itm_params)
+
+            if bool([True for v in itm_params.values() if v]) or (not self.blank and not self.null):
+                itm = self._resource.objects.get(**itm_params)
+            else:
+                itm = None
             setattr(
                 instance,
                 '_cache_%s' % self.attname,
@@ -93,6 +97,12 @@ class ToOneField(RelatedResource):
         }
         defaults.update(kwargs)
         return super(ToOneField, self).formfield(**defaults)
+
+    def __get__(self, instance, instance_type=None):
+        obj = super(ToOneField, self).__get__(instance=instance, instance_type=instance_type)
+        if obj:
+            return getattr(obj, obj._meta.pk.attname, obj)
+        return None
 
 
 class ToManyField(RelatedResource):
