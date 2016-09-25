@@ -1,9 +1,16 @@
 """restorm resource fields."""
+import json
+try:
+    from django.utils import six
+except ImportError:
+    import six
 from django import forms
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django.utils.encoding import smart_text
 from django.utils.text import capfirst
+from jsonfield.encoder import JSONEncoder
+from jsonfield.fields import JSONFormField
 
 BLANK_CHOICE_DASH = [("", "---------")]
 
@@ -238,6 +245,67 @@ class CharField(Field):
         defaults = {'max_length': self.max_length}
         defaults.update(kwargs)
         return super(CharField, self).formfield(**defaults)
+
+
+class TextField(Field):
+    def __init__(self, **kwargs):
+        self.max_length = kwargs.pop('max_length', None)
+        super(TextField, self).__init__(**kwargs)
+
+    def clean(self, instance, value):
+        value = unicode(value)
+        if self.max_length:
+            value = value[:self.max_length]
+        return value
+
+    def formfield(self, **kwargs):
+        # Passing max_length to forms.CharField means that the value's length
+        # will be validated twice. This is considered acceptable since we want
+        # the value in the form field (to pass into widget for example).
+        defaults = {'max_length': self.max_length, 'widget': forms.Textarea}
+        defaults.update(kwargs)
+        return super(TextField, self).formfield(**defaults)
+
+
+class JSONField(TextField):
+    form_class = JSONFormField
+
+    def __init__(self, **kwargs):
+        self.dump_kwargs = kwargs.pop('dump_kwargs', {
+            'cls': JSONEncoder,
+            'separators': (',', ':')
+        })
+        self.load_kwargs = kwargs.pop('load_kwargs', {})
+        super(JSONField, self).__init__(**kwargs)
+
+    def formfield(self, **kwargs):
+
+        if "form_class" not in kwargs:
+            kwargs["form_class"] = self.form_class
+
+        field = super(JSONField, self).formfield(**kwargs)
+        field.load_kwargs = self.load_kwargs
+
+        if not field.help_text:
+            field.help_text = "Enter valid JSON"
+
+        return field
+
+    def value_from_object(self, obj):
+        value = super(JSONField, self).value_from_object(obj)
+        if self.null and value is None:
+            return None
+        return self.dumps_for_display(value)
+
+    def dumps_for_display(self, value):
+        kwargs = {"indent": 2}
+        kwargs.update(self.dump_kwargs)
+        if isinstance(value, six.string_types):
+            return json.dumps(json.loads(value), **kwargs)
+        elif value.__class__.__name__ == 'DynamicRestObject':
+            return json.dumps(value._obj, **kwargs)
+        else:
+            return json.dumps(value, **kwargs)
 
 
 class DateField(CharField):
