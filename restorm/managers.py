@@ -51,6 +51,18 @@ class ResourceManager(object):
         obj = self.get_queryset().get(**kwargs)
         return obj
 
+    def using(self, client):
+        if client:
+            queryset = self.queryset_class(
+                model=self.object_class, client=client)
+        else:
+            queryset = self.get_queryset()
+        return queryset
+
+    def order_by(self, *args):
+        # FIXME
+        return self.get_queryset()
+
     def create(self, **kwargs):
         """
         Roughly equivalent to a POST request, this methods creates a new entry.

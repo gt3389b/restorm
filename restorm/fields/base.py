@@ -1,10 +1,12 @@
 """restorm resource fields."""
+from decimal import Decimal
 import json
 try:
     from django.utils import six
 except ImportError:
     import six
 from django import forms
+from django.forms import widgets
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django.utils.encoding import smart_text
@@ -25,7 +27,7 @@ class Field(object):
     empty_strings_allowed = True
 
     def __init__(self, **kwargs):
-        self.primary = kwargs.pop('primary', False)
+        self.primary_key = kwargs.pop('primary_key', False)
         self.default = kwargs.pop('default', None)
         self.null = kwargs.pop('null', False)
         self.blank = kwargs.pop('blank', False)
@@ -34,12 +36,16 @@ class Field(object):
         self.help_text = kwargs.pop('help_text', '')
         self.is_relation = False
         self.auto_created = False
-        self.rel = None
         self.choices = kwargs.pop('choices', None)
+        self.concrete = True
 
         # Increase the creation counter, and save our local copy.
         self.creation_counter = Field.creation_counter
         Field.creation_counter += 1
+
+    @property
+    def rel(self):
+        return None
 
     @property
     def flatchoices(self):
@@ -225,6 +231,18 @@ class IntegerField(Field):
         defaults = {'form_class': forms.IntegerField}
         defaults.update(kwargs)
         return super(IntegerField, self).formfield(**defaults)
+
+
+class DecimalField(Field):
+    empty_strings_allowed = False
+
+    def clean(self, instance, value):
+        return Decimal(value)
+
+    def formfield(self, **kwargs):
+        defaults = {'form_class': forms.DecimalField}
+        defaults.update(kwargs)
+        return super(DecimalField, self).formfield(**defaults)
 
 
 class CharField(Field):

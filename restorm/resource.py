@@ -14,23 +14,6 @@ from restorm.managers import ResourceManager, ResourceManagerDescriptor
 from restorm.fields import Field
 
 
-class DictObject(object):
-    def __init__(self, initial=None):
-        self.__dict__['_data'] = {}
-
-        if hasattr(initial, 'items'):
-            self.__dict__['_data'] = initial
-
-    def __getattr__(self, name):
-        return self._data.get(name, None)
-
-    def __setattr__(self, name, value):
-        self.__dict__['_data'][name] = value
-
-    def to_dict(self):
-        return self._data
-
-
 class ResourceOptions(object):
     DEFAULT_NAMES = (
         'list', 'item', 'root', 'app_label', 'resource_name', 'verbose_name',
@@ -84,7 +67,7 @@ class ResourceOptions(object):
         self.concrete_model = None
         self.swappable = False
         self.swapped = False
-        # self.parents = OrderedDict()
+        self.parents = OrderedDict()
         self.auto_created = False
 
         self.managers = []
@@ -138,6 +121,9 @@ class ResourceOptions(object):
             raise FieldDoesNotExist
         return field
 
+    def get_fields(self, include_hidden=False):
+        fields = self._fields.copy()
+        return fields
     @property
     def pk(self):
         return self._fields[self._pk_attr]
@@ -241,7 +227,7 @@ class ResourceBase(type):
         primary_key = None
         for attr, value in declared_fields.items():
             setattr(new_class, attr, value)
-            if value.primary:
+            if value.primary_key:
                 if primary_key is not None:
                     raise ImproperlyConfigured('Multiple primary keys.')
                 else:
@@ -251,6 +237,7 @@ class ResourceBase(type):
 
         setattr(new_class._meta, '_fields', declared_fields)
         setattr(new_class._meta, 'concrete_fields', declared_fields)
+        setattr(new_class._meta, 'concrete_model', new_class)
         setattr(new_class, 'DoesNotExist', RestServerException)
 
         return new_class
@@ -322,7 +309,8 @@ class Resource(object):
         """
 
         if self.absolute_url is None:
-            data = self.__class__.objects.create(**self.data._obj)
+            obj_data = self.data._obj
+            data = self.__class__.objects.create(**obj_data)
             if data:
                 self.data = data
                 # FIXME generate absolute_url
