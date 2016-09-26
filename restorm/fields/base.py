@@ -285,6 +285,9 @@ class JSONField(TextField):
         self.load_kwargs = kwargs.pop('load_kwargs', {})
         super(JSONField, self).__init__(**kwargs)
 
+    def clean(self, instance, value):
+        return value
+
     def formfield(self, **kwargs):
 
         if "form_class" not in kwargs:
