@@ -5,8 +5,8 @@ try:
     from django.utils import six
 except ImportError:
     import six
+
 from django import forms
-from django.forms import widgets
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django.utils.encoding import smart_text
@@ -92,16 +92,7 @@ class Field(object):
     def __get__(self, instance, instance_type=None):
         if instance is None:
             return self
-
-        if not hasattr(instance, '_cache_%s' % self.attname):
-            try:
-                value = instance.data[self.attname]
-            except (KeyError, TypeError):
-                value = self.default
-
-            setattr(instance, '_cache_%s' % self.attname, value)
-
-        return getattr(instance, '_cache_%s' % self.attname, None)
+        return instance.data.get(self.attname, self.default)
 
     def clean(self, instance, value):
         return value
@@ -114,8 +105,6 @@ class Field(object):
             raise AttributeError('%s is not editable!')
 
         value = self.clean(instance, value)
-
-        setattr(instance, '_cache_%s' % self.attname, value)
         instance.data[self.attname] = value
 
     def value_from_object(self, instance):

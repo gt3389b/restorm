@@ -1,4 +1,4 @@
-from restorm.exceptions import RestServerException
+from restorm.exceptions import RestServerException, RestValidationException
 from restorm.patterns import ResourcePattern
 from restorm.query import RestQuerySet
 
@@ -84,6 +84,10 @@ class ResourceManager(object):
                 return self.object_class(data=response.content)
             else:
                 return None
+        elif response.status_code in [400]:
+            raise RestValidationException('Cannot create "%s" (%d): %s' % (
+                response.request.uri, response.status_code, response.content),
+                response)
         else:
             raise RestServerException('Cannot create "%s" (%d): %s' % (
                 response.request.uri, response.status_code, response.content))

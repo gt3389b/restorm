@@ -160,7 +160,7 @@ class RestQuerySet(object):
     def get(self, **kwargs):
         response = self._request_item(**kwargs)
         obj = self.model(
-            response.content, client=self._client,
+            data=response.content, client=self._client,
             absolute_url=response.request.uri)
         return obj
 

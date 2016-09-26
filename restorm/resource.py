@@ -5,13 +5,13 @@ from django.apps import apps
 from django.apps.config import MODELS_MODULE_NAME
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 # from django.utils.text import camel_case_to_spaces
-from django.utils import six
+# from django.utils import six
 
 from restorm.conf import settings
-from restorm.exceptions import RestServerException
-from restorm.rest import restify
+from restorm.exceptions import RestServerException, RestValidationException
+# from restorm.rest import restify
 from restorm.managers import ResourceManager, ResourceManagerDescriptor
-from restorm.fields import Field
+from restorm.fields import Field, ToOneField, ToManyField
 
 
 class ResourceOptions(object):
@@ -124,6 +124,7 @@ class ResourceOptions(object):
     def get_fields(self, include_hidden=False):
         fields = self._fields.copy()
         return fields
+
     @property
     def pk(self):
         return self._fields[self._pk_attr]
@@ -231,6 +232,7 @@ class ResourceBase(type):
                 if primary_key is not None:
                     raise ImproperlyConfigured('Multiple primary keys.')
                 else:
+                    primary_key = value
                     setattr(new_class._meta, '_pk_attr', attr)
         new_class.base_fields = declared_fields
         new_class.declared_fields = declared_fields
@@ -273,8 +275,8 @@ class Resource(object):
     def __init__(self, data={}, client=None, absolute_url=None):
         self.client = client
         self.absolute_url = absolute_url
-
-        self.data = restify(data, self)
+        assert type(data) == dict, data
+        self.data = data
 
     def __unicode__(self):
         return self.absolute_url
@@ -283,11 +285,14 @@ class Resource(object):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())
 
     def _get_pk_val(self):
-        return self.data[self._meta.pk.attname]
+        try:
+            return self.data[self._meta.pk.attname]
+        except:
+            return getattr(self.data, self._meta.pk.attname)
 
     @property
     def pk(self):
-        if getattr(self._meta, '_pk_attr', None):
+        if getattr(self._meta, '_pk_attr', 'id'):
             return getattr(self, self._meta._pk_attr, None)
 
     def serializable_value(self, name):
@@ -308,15 +313,26 @@ class Resource(object):
         contents of this body is returned, otherwise ``None``.
         """
 
+        obj_data = self.data.copy()
+        for key, value in self.data.items():
+            try:
+                field = self._meta.get_field(key)
+            except FieldDoesNotExist:
+                del obj_data[key]
+                continue
+            if value and isinstance(field, ToOneField):
+                value = value.pk
+            if value and isinstance(field, ToManyField):
+                value = [o.pk for o in value]
+            obj_data[key] = value
         if self.absolute_url is None:
-            obj_data = self.data._obj
             data = self.__class__.objects.create(**obj_data)
             if data:
                 self.data = data
                 # FIXME generate absolute_url
             return data
 
-        response = self.client.put(self.absolute_url, self.data)
+        response = self.client.put(self.absolute_url, obj_data)
 
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
@@ -324,8 +340,12 @@ class Resource(object):
                 return response.content
             else:
                 return None
+        elif response.status_code in [400]:
+            raise RestValidationException('Cannot save "%s" (%d): %s' % (
+                response.request.uri, response.status_code, response.content),
+                response)
         else:
-            raise RestServerException('Cannot update "%s" (%d): %s' % (
+            raise RestServerException('Cannot save "%s" (%d): %s' % (
                 response.request.uri, response.status_code, response.content))
 
     def delete(self):
@@ -345,6 +365,10 @@ class Resource(object):
                 return response.content
             else:
                 return None
+        elif response.status_code in [400]:
+            raise RestValidationException('Cannot delete "%s" (%d): %s' % (
+                response.request.uri, response.status_code, response.content),
+                response)
         else:
             raise RestServerException('Cannot delete "%s" (%d): %s' % (
                 response.request.uri, response.status_code, response.content))
