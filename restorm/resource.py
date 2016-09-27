@@ -51,7 +51,6 @@ class ResourceOptions(object):
         self.ordering = []
         self.default_permissions = ('add', 'change', 'delete')
         self.permissions = []
-        self.object_name = None
         self.app_label = app_label
         self.get_latest_by = None
         self.order_with_respect_to = None
@@ -100,11 +99,11 @@ class ResourceOptions(object):
 
     @property
     def model_name(self):
-        resource_name = getattr(self, 'resource_name', None)
-        if resource_name is None:
-            setattr(self, 'resource_name', 'lalalala')
-
         return getattr(self, 'resource_name', None)
+
+    @property
+    def object_name(self):
+        return self.model_name
 
     @property
     def verbose_name(self):
@@ -121,9 +120,16 @@ class ResourceOptions(object):
             raise FieldDoesNotExist
         return field
 
+    @property
+    def fields(self):
+        return self._fields.values()
+
     def get_fields(self, include_hidden=False):
         fields = self._fields.copy()
         return fields
+
+    def get_parent_list(self):
+        return []
 
     @property
     def pk(self):
@@ -242,6 +248,12 @@ class ResourceBase(type):
         setattr(new_class._meta, 'concrete_model', new_class)
         setattr(new_class, 'DoesNotExist', RestServerException)
 
+        class State:
+            db = new_class._meta.client
+            adding = False
+
+        setattr(new_class, '_state', State())
+
         return new_class
 
     @property
@@ -275,11 +287,11 @@ class Resource(object):
     def __init__(self, data={}, client=None, absolute_url=None):
         self.client = client
         self.absolute_url = absolute_url
-        assert type(data) == dict, data
+        assert type(data) == dict, (type(data), data)
         self.data = data
 
     def __unicode__(self):
-        return self.absolute_url
+        return unicode(self.absolute_url)
 
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())
@@ -289,6 +301,9 @@ class Resource(object):
             return self.data[self._meta.pk.attname]
         except:
             return getattr(self.data, self._meta.pk.attname)
+
+    def _get_unique_checks(self, exclude=None):
+        return [], []
 
     @property
     def pk(self):
@@ -323,7 +338,11 @@ class Resource(object):
             if value and isinstance(field, ToOneField):
                 value = value.pk
             if value and isinstance(field, ToManyField):
-                value = [o.pk for o in value]
+                if field.rel.through is None:
+                    value = [o.pk for o in value]
+                else:
+                    del obj_data[key]
+                    continue
             obj_data[key] = value
         if self.absolute_url is None:
             data = self.__class__.objects.create(**obj_data)

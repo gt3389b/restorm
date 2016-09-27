@@ -53,7 +53,7 @@ class ResourceManager(object):
 
     def using(self, client):
         if client:
-            queryset = self.queryset_class(
+            queryset = self.using(
                 model=self.object_class, client=client)
         else:
             queryset = self.get_queryset()
@@ -81,7 +81,9 @@ class ResourceManager(object):
         # Although 201 is the best HTTP status code for a valid POST response.
         if response.status_code in [200, 201, 204]:
             if response.content:
-                return self.object_class(data=response.content)
+                return self.object_class(
+                    data=response.content, absolute_url=absolute_url,
+                    client=self.object_class.Meta.client)
             else:
                 return None
         elif response.status_code in [400]:

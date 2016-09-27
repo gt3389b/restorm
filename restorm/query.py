@@ -17,6 +17,7 @@ class RestQuerySet(object):
         self._result_cache = {}
         self._page_size = model._meta.page_size
         self._item_pattern = ResourcePattern.parse(self.model._meta.item)
+        self.ordered = False
 
     def _request_list(self, query=None, uri=None, **kwargs):
         rp = ResourcePattern.parse(self.model._meta.list)
@@ -62,10 +63,11 @@ class RestQuerySet(object):
             objects = content
             offset_from = 0
         for i, r in enumerate(objects):
-            # assert False, type(r)
-            # absolute_url = i
+            pk_attr = self.model._meta.pk.attname
+            absolute_url = self._item_pattern.get_absolute_url(
+                root=self.model._meta.root, **{pk_attr: r[pk_attr]})
             self._result_cache[offset_from + i] = self.model(
-                data=r)
+                data=r, absolute_url=absolute_url, client=self._client)
 
     def _fetch_all(self):
         if self._page_size:
@@ -131,6 +133,9 @@ class RestQuerySet(object):
     def filter(self, **kwargs):
         query = self.query.copy()
         query.update(kwargs)
+        if 'pk' in query:
+            value = query.pop('pk')
+            query[self.model._meta.pk.attname] = value
 
         return RestQuerySet(
             self.model, query=query, client=self._client)
@@ -172,6 +177,19 @@ class RestQuerySet(object):
         else:
             count = len(self._result_cache)
         return count
+
+    def order_by(self, *args):
+        return self.get_queryset()
+
+    def using(self, *args, **kwargs):
+        # Not supported but kept for compatibility.
+        return self.get_queryset()
+
+    def none(self):
+        return []
+
+    def iterator(self):
+        return iter(self.get_queryset())
 
     def __len__(self):
         return self.count()

@@ -38,6 +38,7 @@ class Field(object):
         self.auto_created = False
         self.choices = kwargs.pop('choices', None)
         self.concrete = True
+        self.unique = False
 
         # Increase the creation counter, and save our local copy.
         self.creation_counter = Field.creation_counter
@@ -90,7 +91,7 @@ class Field(object):
         return verbose_name
 
     def __get__(self, instance, instance_type=None):
-        if instance is None:
+        if instance is None or not hasattr(instance, 'client'):
             return self
         return instance.data.get(self.attname, self.default)
 
@@ -109,6 +110,9 @@ class Field(object):
 
     def value_from_object(self, instance):
         return self.__get__(instance)
+
+    def get_attname(self):
+        return self.attname
 
     def save_form_data(self, instance, data):
         # Important: None means "no change", other false value means "clear"
@@ -218,6 +222,8 @@ class IntegerField(Field):
 
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.IntegerField}
+        kwargs.pop('choices', None)
+        # assert not choices, choices
         defaults.update(kwargs)
         return super(IntegerField, self).formfield(**defaults)
 

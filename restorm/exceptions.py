@@ -10,8 +10,8 @@ class RestServerException(RestException):
     pass
 
 
-class RestValidationException(RestException):
-    def __init__(self, msg, response):
+class RestValidationException(RestServerException):
+    def __init__(self, msg, response=None):
         self.response = response
         super(RestValidationException, self).__init__(msg)
 
