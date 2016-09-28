@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from restorm.exceptions import RestServerException, RestValidationException
 from restorm.patterns import ResourcePattern
 from restorm.query import RestQuerySet
@@ -52,27 +53,13 @@ class ResourceManager(object):
         return obj
 
     def using(self, client):
-        if client:
-            queryset = self.using(
-                model=self.object_class, client=client)
-        else:
-            queryset = self.get_queryset()
-        return queryset
+        return self.get_queryset().using(client)
 
     def order_by(self, *args):
-        # FIXME
-        return self.get_queryset()
+        return self.get_queryset().order_by(*args)
 
     def create(self, **kwargs):
-        """
-        Roughly equivalent to a POST request, this methods creates a new entry.
-
-        :param client: The client to retrieve the object from the API. By
-            default, the default client is used. If no client and no default
-            client are specified, a ``ValueError`` is raised.
-        :param data: Any Python object that you want to have serialized and
-            stored.
-        """
+        """Send POST request to resource and return Resource instance."""
         rp = ResourcePattern.parse(self.options.list)
         absolute_url = rp.get_absolute_url(root=self.options.root)
 

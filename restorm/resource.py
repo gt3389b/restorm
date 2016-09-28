@@ -289,6 +289,8 @@ class Resource(object):
         self.absolute_url = absolute_url
         assert type(data) == dict, (type(data), data)
         self.data = data
+        if self.absolute_url is None and self._meta.pk.attname not in self.data:
+            self._state.adding = True
 
     def __unicode__(self):
         return unicode(self.absolute_url)
@@ -319,15 +321,7 @@ class Resource(object):
     def validate_unique(self, *args, **kwargs):
         pass
 
-    def save(self):
-        """
-        Performs a PUT request to update the object.
-
-        No guarantees are given to what this method actually returns due to the
-        freedom of API implementations. If there is a body in the response, the
-        contents of this body is returned, otherwise ``None``.
-        """
-
+    def _clean_request_data(self):
         obj_data = self.data.copy()
         for key, value in self.data.items():
             try:
@@ -344,11 +338,21 @@ class Resource(object):
                     del obj_data[key]
                     continue
             obj_data[key] = value
-        if self.absolute_url is None:
+        return obj_data
+
+    def save(self):
+        """
+        Performs a PUT request to update the object.
+
+        No guarantees are given to what this method actually returns due to the
+        freedom of API implementations. If there is a body in the response, the
+        contents of this body is returned, otherwise ``None``.
+        """
+        obj_data = self._clean_request_data()
+        if not self.absolute_url:
             data = self.__class__.objects.create(**obj_data)
             if data:
                 self.data = data
-                # FIXME generate absolute_url
             return data
 
         response = self.client.put(self.absolute_url, obj_data)

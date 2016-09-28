@@ -1,3 +1,4 @@
+from restorm.clients.base import BaseClient
 from restorm.exceptions import RestServerException
 from restorm.patterns import ResourcePattern
 
@@ -11,20 +12,21 @@ class RestQuerySet(object):
     """Rest query set."""
     def __init__(self, model=None, query=None, client=None):
         self.model = model or dict
+        self.opts = self.model._meta
         self.query = query or {}
         self._client = client
         self._pages_fetched = {}
         self._result_cache = {}
         self._page_size = model._meta.page_size
-        self._item_pattern = ResourcePattern.parse(self.model._meta.item)
+        self._item_pattern = ResourcePattern.parse(self.opts.item)
+        self._list_pattern = ResourcePattern.parse(self.opts.list)
         self.ordered = False
 
     def _request_list(self, query=None, uri=None, **kwargs):
-        rp = ResourcePattern.parse(self.model._meta.list)
         if uri:
-            kwargs = rp.params_from_uri(uri)
-        absolute_url = rp.get_absolute_url(
-            root=self.model._meta.root, query=query, **kwargs)
+            kwargs = self._list_pattern.params_from_uri(uri)
+        absolute_url = self._list_pattern.get_absolute_url(
+            root=self.opts.root, query=query, **kwargs)
 
         response = self._client.get(absolute_url)
 
@@ -62,12 +64,12 @@ class RestQuerySet(object):
         else:
             objects = content
             offset_from = 0
-        for i, r in enumerate(objects):
-            pk_attr = self.model._meta.pk.attname
+        for idx, row in enumerate(objects):
+            pk_attr = self.opts.pk.attname
             absolute_url = self._item_pattern.get_absolute_url(
-                root=self.model._meta.root, **{pk_attr: r[pk_attr]})
-            self._result_cache[offset_from + i] = self.model(
-                data=r, absolute_url=absolute_url, client=self._client)
+                root=self.opts.root, **{pk_attr: row[pk_attr]})
+            self._result_cache[offset_from + idx] = self.model(
+                data=row, absolute_url=absolute_url, client=self._client)
 
     def _fetch_all(self):
         if self._page_size:
@@ -122,10 +124,12 @@ class RestQuerySet(object):
     def __bool__(self):
         return bool(self.count())
 
-    def get_queryset(self):
+    def get_queryset(self, client=None):
+        if client is None:
+            client = self._client
         return RestQuerySet(
             self.model, query=self.query,
-            client=self._client)
+            client=client)
 
     def _clone(self):
         return self.get_queryset()
@@ -135,7 +139,7 @@ class RestQuerySet(object):
         query.update(kwargs)
         if 'pk' in query:
             value = query.pop('pk')
-            query[self.model._meta.pk.attname] = value
+            query[self.opts.pk.attname] = value
 
         return RestQuerySet(
             self.model, query=query, client=self._client)
@@ -151,7 +155,7 @@ class RestQuerySet(object):
         if uri:
             kwargs = self._item_pattern.params_from_uri(uri)
         absolute_url = self._item_pattern.get_absolute_url(
-            root=self.model._meta.root, query=query, **kwargs)
+            root=self.opts.root, query=query, **kwargs)
 
         response = self._client.get(absolute_url)
 
@@ -179,11 +183,13 @@ class RestQuerySet(object):
         return count
 
     def order_by(self, *args):
+        # FIXME: validate order_by args
         return self.get_queryset()
 
-    def using(self, *args, **kwargs):
-        # Not supported but kept for compatibility.
-        return self.get_queryset()
+    def using(self, client=None):
+        if client and not isinstance(client, BaseClient):
+            client = None
+        return self.get_queryset(client)
 
     def none(self):
         return []

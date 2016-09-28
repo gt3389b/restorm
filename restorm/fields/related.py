@@ -2,13 +2,16 @@ from django import forms
 from django.utils.functional import SimpleLazyObject, cached_property
 from django.utils.module_loading import import_string
 from django.db.models import FieldDoesNotExist
-
+from rest_admin.forms import ResourceChoiceField
 from .base import Field
 
 
 def _default_get_itm_params(data, resource):
+    from restorm.resource import Resource
     if type(data) == dict:
         value = data[resource._meta.pk.attname]
+    elif isinstance(data, Resource):
+        value = data.pk
     else:
         value = data
     return {
@@ -121,26 +124,6 @@ class RelatedResource(Field):
             {'__module__': '%s.auto' % Resource.__module__}
         )
 
-    # def __get__(self, instance, instance_type=None):
-    #     if instance is None:
-    #         return self
-    #
-    #     if not hasattr(instance, '_cache_%s' % self.attname):
-    #         itm_params = self._get_itm_params(
-    #             instance.data[self.attname], self.rel.to)
-    #
-    #         if bool([True for v in itm_params.values() if v]) or (not self.blank and not self.null):
-    #             itm = self.ret.to._default_manager.get(**itm_params)
-    #         else:
-    #             itm = None
-    #         setattr(
-    #             instance,
-    #             '_cache_%s' % self.attname,
-    #             itm
-    #         )
-    #
-    #     return getattr(instance, '_cache_%s' % self.attname, None)
-
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError(
@@ -170,17 +153,12 @@ class ToOneField(RelatedResource):
 
     def formfield(self, **kwargs):
         defaults = {
-            'form_class': forms.TypedChoiceField,
-            'choices': SimpleLazyObject(lambda: [[obj.pk, obj.__unicode__()] for obj in self.rel.to._default_manager.get_queryset()]),
+            'form_class': ResourceChoiceField,
+            'queryset': self.rel.to._default_manager.get_queryset(),
         }
         defaults.update(kwargs)
         return super(ToOneField, self).formfield(**defaults)
 
-    # def __get__(self, instance, instance_type=None):
-    #     obj = super(ToOneField, self).__get__(instance=instance, instance_type=instance_type)
-    #     if obj:
-    #         return getattr(obj, obj._meta.pk.attname, obj)
-    #     return None
     def save_form_data(self, instance, data):
         # Important: None means "no change", other false value means "clear"
         # This subtle distinction (rather than a more explicit marker) is

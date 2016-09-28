@@ -103,7 +103,7 @@ class Field(object):
             raise AttributeError(
                 '%s must be accessed via instance' % self.attname.name)
         if not self.editable:
-            raise AttributeError('%s is not editable!')
+            return
 
         value = self.clean(instance, value)
         instance.data[self.attname] = value
