@@ -127,7 +127,7 @@ class RestQuerySet(object):
     def get_queryset(self, client=None):
         if client is None:
             client = self._client
-        return RestQuerySet(
+        return self.__class__(
             self.model, query=self.query,
             client=client)
 
@@ -192,10 +192,18 @@ class RestQuerySet(object):
         return self.get_queryset(client)
 
     def none(self):
-        return []
+        return EmptyRestQuerySet(self.model, self.query, self._client)
 
     def iterator(self):
         return iter(self.get_queryset())
 
     def __len__(self):
         return self.count()
+
+
+class EmptyRestQuerySet(RestQuerySet):
+    def _fetch_page(self, page):
+        self._result_cache = {}
+
+    def count(self):
+        return 0
