@@ -45,8 +45,8 @@ class ResourceOptions(object):
         self.local_many_to_many = []
         self.virtual_fields = []
         self.many_to_many = []
-        # self.verbose_name = None
-        # self.verbose_name_plural = None
+        self._verbose_name = None
+        self._verbose_name_plural = None
         # self.db_table = ''
         self.ordering = []
         self.default_permissions = ('add', 'change', 'delete')
@@ -91,7 +91,11 @@ class ResourceOptions(object):
                     del meta_attrs[name]
             for attr_name in self.DEFAULT_NAMES:
                 if attr_name in meta_attrs:
-                    setattr(self, attr_name, meta_attrs.pop(attr_name))
+                    value = meta_attrs.pop(attr_name)
+                    try:
+                        setattr(self, attr_name, value)
+                    except AttributeError:
+                        setattr(self, "_{}".format(attr_name), value)
                 elif hasattr(meta, attr_name):
                     setattr(self, attr_name, getattr(meta, attr_name))
         if self.client is None:
@@ -107,7 +111,9 @@ class ResourceOptions(object):
 
     @property
     def verbose_name(self):
-        return self.model_name
+        if not self._verbose_name:
+            self._verbose_name = self.model_name
+        return self._verbose_name
 
     @property
     def verbose_name_plural(self):
