@@ -10,8 +10,9 @@ from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from restorm.conf import settings
 from restorm.exceptions import RestServerException, RestValidationException
 # from restorm.rest import restify
-from restorm.managers import ResourceManager, ResourceManagerDescriptor
 from restorm.fields import Field, ToOneField, ToManyField
+from restorm.managers import ResourceManager, ResourceManagerDescriptor
+from restorm.patterns import ResourcePattern
 
 
 class ResourceOptions(object):
@@ -291,12 +292,14 @@ class Resource(object):
     objects = None
 
     def __init__(self, data={}, client=None, absolute_url=None):
-        self.client = client
+        self.client = client or self._meta.client
         self.absolute_url = absolute_url
         assert type(data) == dict, (type(data), data)
         self.data = data
         if self.absolute_url is None and self._meta.pk.attname not in self.data:
             self._state.adding = True
+        self._item_pattern = ResourcePattern.parse(self._meta.item)
+        self._list_pattern = ResourcePattern.parse(self._meta.list)
 
     def __unicode__(self):
         return unicode(self.absolute_url)
@@ -319,7 +322,7 @@ class Resource(object):
             return getattr(self, self._meta._pk_attr, None)
 
     def serializable_value(self, name):
-        return self.__dict__['data'][name]
+        return getattr(self, name, None)
 
     def full_clean(self, *args, **kwargs):
         pass
@@ -356,19 +359,19 @@ class Resource(object):
         """
         obj_data = self._clean_request_data()
         if not self.absolute_url:
-            data = self.__class__.objects.create(**obj_data)
-            if data:
-                self.data = data
-            return data
-
-        response = self.client.put(self.absolute_url, obj_data)
+            absolute_url = self._list_pattern.get_absolute_url(
+                root=self._meta.root)
+            response = self.client.post(absolute_url, obj_data)
+        else:
+            absolute_url = self.absolute_url
+            response = self.client.put(self.absolute_url, obj_data)
 
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
-            if response.content:
-                return response.content
-            else:
-                return None
+            if response.content and isinstance(response.content, dict):
+                self.data = response.content
+                self.absolute_url = absolute_url
+            return response.content
         elif response.status_code in [400]:
             raise RestValidationException('Cannot save "%s" (%d): %s' % (
                 response.request.uri, response.status_code, response.content),

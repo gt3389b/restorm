@@ -60,23 +60,6 @@ class ResourceManager(object):
 
     def create(self, **kwargs):
         """Send POST request to resource and return Resource instance."""
-        rp = ResourcePattern.parse(self.options.list)
-        absolute_url = rp.get_absolute_url(root=self.options.root)
-
-        response = self.object_class.Meta.client.post(absolute_url, kwargs)
-
-        # Although 201 is the best HTTP status code for a valid POST response.
-        if response.status_code in [200, 201, 204]:
-            if response.content:
-                return self.object_class(
-                    data=response.content, absolute_url=absolute_url,
-                    client=self.object_class.Meta.client)
-            else:
-                return None
-        elif response.status_code in [400]:
-            raise RestValidationException('Cannot create "%s" (%d): %s' % (
-                response.request.uri, response.status_code, response.content),
-                response)
-        else:
-            raise RestServerException('Cannot create "%s" (%d): %s' % (
-                response.request.uri, response.status_code, response.content))
+        instance = self.object_class(kwargs)
+        instance.save()
+        return instance
