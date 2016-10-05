@@ -124,6 +124,18 @@ class RelatedResource(Field):
             {'__module__': '%s.auto' % Resource.__module__}
         )
 
+    def save_form_data(self, instance, data):
+        # Important: None means "no change", other false value means "clear"
+        # This subtle distinction (rather than a more explicit marker) is
+        # needed because we need to consume values that are also sane for a
+        # regular (non Model-) Form to find in its cleaned_data dictionary.
+        if data is not None:
+            # This value will be converted to unicode and stored in the
+            # database, so leaving False as-is is not acceptable.
+            if not data:
+                data = ''
+            setattr(instance, self.name, data)
+
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError(
