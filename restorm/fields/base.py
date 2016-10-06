@@ -237,9 +237,10 @@ class CharField(Field):
         super(CharField, self).__init__(**kwargs)
 
     def clean(self, instance, value):
-        value = unicode(value)
-        if self.max_length:
-            value = value[:self.max_length]
+        if value is not None:
+            value = unicode(value)
+            if self.max_length:
+                value = value[:self.max_length]
         return value
 
     def formfield(self, **kwargs):
