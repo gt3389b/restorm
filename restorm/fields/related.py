@@ -2,7 +2,9 @@ from django import forms
 from django.utils.functional import SimpleLazyObject, cached_property
 from django.utils.module_loading import import_string
 from django.db.models import FieldDoesNotExist
-from rest_admin.forms import ResourceChoiceField
+
+from restorm.forms import ResourceChoiceField
+
 from .base import Field
 
 
