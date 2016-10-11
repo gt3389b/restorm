@@ -209,7 +209,8 @@ class IntegerField(Field):
     empty_strings_allowed = False
 
     def clean(self, instance, value):
-        return int(value)
+        if value is not None:
+            return int(value)
 
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.IntegerField}

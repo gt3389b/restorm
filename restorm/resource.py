@@ -349,7 +349,7 @@ class Resource(object):
             obj_data[key] = value
         return obj_data
 
-    def save(self):
+    def save(self, commit=True):
         """
         Performs a PUT request to update the object.
 
@@ -358,6 +358,8 @@ class Resource(object):
         contents of this body is returned, otherwise ``None``.
         """
         obj_data = self._clean_request_data()
+        if not commit:
+            return
         if not self.absolute_url:
             absolute_url = self._list_pattern.get_absolute_url(
                 root=self._meta.root)
