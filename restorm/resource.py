@@ -295,7 +295,7 @@ class Resource(object):
         self.client = client or self._meta.client
         self.absolute_url = absolute_url
         assert type(data) == dict, (type(data), data)
-        self.data = data
+        self.data = data.copy()
         if self.absolute_url is None and self._meta.pk.attname not in self.data:
             self._state.adding = True
         self._item_pattern = ResourcePattern.parse(self._meta.item)
