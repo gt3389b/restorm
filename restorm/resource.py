@@ -361,10 +361,12 @@ class Resource(object):
         if not commit:
             return
         if not self.absolute_url:
+            created = True
             absolute_url = self._list_pattern.get_absolute_url(
                 root=self._meta.root)
             response = self.client.post(absolute_url, obj_data)
         else:
+            created = False
             absolute_url = self.absolute_url
             response = self.client.put(self.absolute_url, obj_data)
 
@@ -372,8 +374,11 @@ class Resource(object):
         if response.status_code in [200, 201, 204]:
             if response.content and isinstance(response.content, dict):
                 self.data = response.content
-                self.absolute_url = absolute_url
-            return response.content
+                pk_attr = self._meta.pk.attname
+                if not self.absolute_url:
+                    self.absolute_url = self._item_pattern.get_absolute_url(
+                        root=self._meta.root, **{pk_attr: self.data[pk_attr]})
+            return created
         elif response.status_code in [400]:
             raise RestValidationException('Cannot save "%s" (%d): %s' % (
                 response.request.uri, response.status_code, response.content),

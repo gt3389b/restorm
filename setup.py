@@ -36,6 +36,7 @@ setup(
     # Packaging.
     packages=find_packages(exclude=('tests', 'examples')),
     install_requires=install_requires,
+    test_suite='restorm.test',
     tests_require=tests_require,
     include_package_data=True,
     zip_safe=False,
