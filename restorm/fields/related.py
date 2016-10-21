@@ -232,10 +232,13 @@ class ToManyField(RelatedResource):
 
         instance.data[self.attname] = related_list
 
+    def get_queryset_choices(self):
+        return [[obj.pk, obj.__unicode__()] for obj in self.rel.to._default_manager.get_queryset()]
+
     def formfield(self, **kwargs):
         defaults = {
             'form_class': forms.TypedMultipleChoiceField,
-            'choices': SimpleLazyObject(lambda: [[obj.pk, obj.__unicode__()] for obj in self.rel.to._default_manager.get_queryset()]),  # NOQA
+            'choices': self.get_queryset_choices,
         }
         defaults.update(kwargs)
         if defaults.get('initial') is not None:

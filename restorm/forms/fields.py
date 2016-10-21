@@ -1,8 +1,12 @@
 from django.forms.fields import TypedChoiceField
-from django.utils.functional import SimpleLazyObject
 
 
 class ResourceChoiceField(TypedChoiceField):
     def __init__(self, queryset, **kwargs):
-        kwargs['choices'] = SimpleLazyObject(lambda: [(obj.pk, unicode(obj)) for obj in queryset])
+        kwargs['choices'] = self.curry_queryset_choices(queryset)
         super(ResourceChoiceField, self).__init__(**kwargs)
+
+    def curry_queryset_choices(self, queryset):
+        def get_queryset_choices():
+            return [(obj.pk, unicode(obj)) for obj in queryset]
+        return get_queryset_choices
