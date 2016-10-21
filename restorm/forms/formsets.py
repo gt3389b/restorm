@@ -8,6 +8,7 @@ from django.forms.models import (
     BaseModelFormSet, InlineForeignKeyField, capfirst
 )
 
+from restorm.exceptions import RestValidationException
 from restorm.utils import patch
 
 from .fields import ResourceChoiceField
@@ -114,7 +115,11 @@ class BaseInlineRestFormSet(BaseRestFormSet):
         pk_value = getattr(self.instance, self.fk.rel.field_name)
         setattr(obj, self.fk.get_attname(), getattr(pk_value, 'pk', pk_value))
         if commit:
-            obj.save()
+            try:
+                obj.save()
+            except RestValidationException as err:
+                err.add_errors_to_form(form)
+                raise
         # form.save_m2m() can be called via the formset later on if commit=False
         if commit and hasattr(form, 'save_m2m'):
             form.save_m2m()

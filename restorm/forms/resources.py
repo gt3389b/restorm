@@ -7,6 +7,7 @@ from django.forms.models import (
     ErrorList, ALL_FIELDS, chain, OrderedDict, InlineForeignKeyField,
 )
 from django.utils import six
+from restorm.exceptions import RestValidationException
 
 
 def construct_instance(form, instance, fields=None, exclude=None):
@@ -119,7 +120,11 @@ def save_instance(form, instance, fields=None, fail_message='saved',
                 f.save_form_data(instance, cleaned_data[f.name])
     if commit:
         # If we are committing, save the instance and the m2m data immediately.
-        instance.save()
+        try:
+            instance.save()
+        except RestValidationException as err:
+            err.add_errors_to_form(form)
+            raise
         save_m2m()
     else:
         # We're not committing. Add a method to the form to allow deferred
