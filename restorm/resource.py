@@ -18,7 +18,7 @@ from restorm.patterns import ResourcePattern
 class ResourceOptions(object):
     DEFAULT_NAMES = (
         'list', 'item', 'root', 'app_label', 'resource_name', 'verbose_name',
-        'client', 'app_config', 'page_size', 'page_size_param')
+        'verbose_name_plural', 'client', 'app_config', 'page_size', 'page_size_param')
 
     def __init__(self, meta, app_label=None):
         # Represents this Resource's list URI pattern. For example: A list of
@@ -118,7 +118,9 @@ class ResourceOptions(object):
 
     @property
     def verbose_name_plural(self):
-        return "{}s".format(self.verbose_name)
+        if not self._verbose_name_plural:
+            return "{}s".format(self.verbose_name)
+        return self._verbose_name_plural
 
     def get_field(self, field):
         try:
