@@ -119,7 +119,7 @@ class ResourceOptions(object):
     @property
     def verbose_name_plural(self):
         if not self._verbose_name_plural:
-            return "{}s".format(self.verbose_name)
+            self._verbose_name_plural = "{}s".format(self.verbose_name)
         return self._verbose_name_plural
 
     def get_field(self, field):
