@@ -297,7 +297,7 @@ class Resource(object):
         self.client = client or self._meta.client
         self.absolute_url = absolute_url
         assert type(data) == dict, (type(data), data)
-        self.data = {}
+        self.data = data.copy()
         for k, v in data.items():
             setattr(self, k, v)
         if self.absolute_url is None and self._meta.pk.attname not in self.data:
