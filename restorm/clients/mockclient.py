@@ -1,7 +1,6 @@
-import SimpleHTTPServer
 import urlparse
 import os
-
+from requests import Response
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from restorm.clients.base import ClientMixin
 
@@ -70,7 +69,7 @@ class BaseMockClient(object):
 
         self._response_index = 0
 
-    def request(self, uri, method='GET', body=None, headers=None, redirections=5, connection_type=None):
+    def request(self, uri, method='GET', body=None, headers=None):
         if self._response_index >= len(self.responses):
             raise ValueError('Ran out of responses when requesting: %s' % uri)
 
@@ -80,7 +79,11 @@ class BaseMockClient(object):
         request = self.create_request(uri, method, body, headers)
 
         # Get current queued mock response.
-        response = self.responses[self._response_index]
+        response_headers, response_content = self.responses[self._response_index]
+        response = Response()
+        response.status_code = response_headers.pop('Status')
+        response.headers = response_headers
+        response._content = response_content
         self._response_index += 1
 
         # Set minimal response headers.
@@ -88,9 +91,9 @@ class BaseMockClient(object):
             'Server': 'Mock Client',
             'Status': 0,
         }
-        response_headers.update(response.headers)
+        response.headers.update(response_headers)
 
-        return self.create_response(response_headers, response.content, request)
+        return self.create_response(response, request)
 
 
 class MockClient(BaseMockClient, ClientMixin):
@@ -139,23 +142,29 @@ class BaseMockApiClient(object):
         this container variable or even mutate the ``responses`` variable based
         on the request.
         """
-
+        response = Response()
         # Get mock response for URI (look for full URI and path URI).
-        response_methods = self.responses.get(request.uri) or self.responses.get(request.uri[len(self.root_uri):])
+        response_methods = self.responses.get(request.uri) or self.responses.get(
+            request.uri[len(self.root_uri):])
 
         # If the URI is not found, return a 404.
         if response_methods is None:
-            response_headers, response_content = {'Status': 404}, 'Page not found'
+            response.status_code = 404
+            response._content = 'Page not found'
         # If the URI is found, but not the method, return a 405.
         elif request.method not in response_methods:
-            response_headers, response_content = {'Status': 405}, 'Method not allowed'
+            response.status_code = 405
+            response._content = 'Method not allowed'
         # Otherwise, return the headers and content from the responses.
         else:
             response_headers, response_content = response_methods[request.method]
+            response.status_code = 200
+            response._content = response_content
+            response.headers = response_headers
 
-        return response_headers, response_content
+        return response
 
-    def request(self, uri, method='GET', body=None, headers=None, redirections=5, connection_type=None):
+    def request(self, uri, method='GET', body=None, headers=None):
         """
         The main request method. Users should override the
         ``get_response_from_request`` method for custom response logic.
@@ -165,16 +174,15 @@ class BaseMockApiClient(object):
 
         request = self.create_request(uri, method, body, headers)
 
-        custom_response_headers, response_content = self.get_response_from_request(request)
-
+        response = self.get_response_from_request(request)
         # Default headers.
         response_headers = {
             'Server': 'Mock API',
             'Status': 0,
         }
-        response_headers.update(custom_response_headers)
+        response.headers.update(response_headers)
 
-        return self.create_response(response_headers, response_content, request)
+        return self.create_response(response, request)
 
     def create_server(self, ip_address, port, handler=None):
         """
