@@ -1,9 +1,9 @@
 """
-.. note:: This example is also used in internal unit tests. The 
+.. note:: This example is also used in internal unit tests. The
    ``MockApiClient`` and related classes are specifically made for the purpose
    of unit testing, or "playground" testing.
 
-The example here is a JSON webservice. You can instantiate it and perform 
+The example here is a JSON webservice. You can instantiate it and perform
 requests from the console:
 
 >>> from restorm.examples.mock.api import LibraryApiClient
@@ -16,7 +16,7 @@ You can also start it as a server and connect to it with your browser, or let
 your application connect to it::
 
     $ python -m restorm.examples.mock.library_serv 127.0.0.1:8000
-    
+
 Shut it down with CTRL-C. The above Python script basically does:
 
 >>> server = client.create_server()
@@ -36,7 +36,7 @@ class LibraryApiClient(BaseMockApiClient, JSONClientMixin):
 
     """
     def __init__(self, root_uri=None):
-        # Creating a mock server from this MockApiClient, related resource 
+        # Creating a mock server from this MockApiClient, related resource
         # URI's need to show the same IP address and port.
         if not root_uri:
             root_uri = 'http://localhost/api/'

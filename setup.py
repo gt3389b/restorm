@@ -14,7 +14,8 @@ changes = read_file('CHANGES.rst')
 
 
 install_requires = [
-    'httplib2>=0.7.1',
+    'requests>=2.7.0',
+    'django==1.8.16',
 ]
 tests_require = [
     'nose',
@@ -36,7 +37,7 @@ setup(
     # Packaging.
     packages=find_packages(exclude=('tests', 'examples')),
     install_requires=install_requires,
-    test_suite='restorm.test',
+    test_suite='nose.collector',
     tests_require=tests_require,
     include_package_data=True,
     zip_safe=False,
