@@ -298,8 +298,10 @@ class Resource(object):
         self.absolute_url = absolute_url
         assert type(data) == dict, (type(data), data)
         self.data = data.copy()
-        for k, v in data.items():
-            setattr(self, k, v)
+        for key, value in self._meta.get_fields().items():
+            if key in self.data and not value.is_relation:
+                setattr(self, key, self.data.get(key))
+
         if self.absolute_url is None and self._meta.pk.attname not in self.data:
             self._state.adding = True
         self._item_pattern = ResourcePattern.parse(self._meta.item)

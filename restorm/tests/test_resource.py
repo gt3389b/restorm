@@ -205,10 +205,10 @@ class ResourceCreateAndUpdateTests(TestCase):
         self.issue_resource = Issue
 
     def test_create_resource(self):
-        issue = self.issue_resource.objects.create(data={
-            'title': 'Cannot create an issue',
-            'description': 'This needs more work.'
-        })
+        issue = self.issue_resource.objects.create(
+            title='Cannot create an issue',
+            description='This needs more work.'
+        )
         self.assertEqual(issue.title, 'Cannot create an issue')
         self.assertEqual(issue.description, 'This needs more work.')
 

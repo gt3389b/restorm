@@ -64,11 +64,13 @@ class LibraryApiClient(BaseMockApiClient, JSONClientMixin):
                     [{
                         'isbn': '978-1441413024',
                         'title': 'Dive into Python',
-                        'resource_url': '%sbook/978-1441413024' % root_uri
+                        'resource_url': '%sbook/978-1441413024' % root_uri,
+                        'author': '%sauthor/1' % root_uri
                     }, {
                         'isbn': '978-1590597255',
                         'title': 'The Definitive Guide to Django',
-                        'resource_url': '%sbook/978-1590597255' % root_uri
+                        'resource_url': '%sbook/978-1590597255' % root_uri,
+                        'author': '%sauthor/2' % root_uri
                     }])
                 )
             },
