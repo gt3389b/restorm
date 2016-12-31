@@ -4,15 +4,15 @@ import sys
 from django.apps import apps
 from django.apps.config import MODELS_MODULE_NAME
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
-# from django.utils.text import camel_case_to_spaces
-# from django.utils import six
+from django.utils.encoding import force_text
+from django.utils.translation import override
 
-from restorm.conf import settings
-from restorm.exceptions import RestServerException, RestValidationException
-# from restorm.rest import restify
-from restorm.fields import Field, ToOneField, ToManyField
-from restorm.managers import ResourceManager, ResourceManagerDescriptor
-from restorm.patterns import ResourcePattern
+from .conf import settings
+from .exceptions import RestServerException, RestValidationException
+from .fields import Field, ToOneField, ToManyField
+from .managers import ResourceManager, ResourceManagerDescriptor
+from .patterns import ResourcePattern
+from .registry import registry
 
 
 class ResourceOptions(object):
@@ -75,6 +75,7 @@ class ResourceOptions(object):
         self.related_fkey_lookups = []
 
         self.apps = apps
+        self.resources = registry
 
         self.default_related_name = None
 
@@ -122,6 +123,16 @@ class ResourceOptions(object):
             self._verbose_name_plural = "{}s".format(self.verbose_name)
         return self._verbose_name_plural
 
+    @property
+    def verbose_name_raw(self):
+        """
+        There are a few places where the untranslated verbose name is needed
+        (so that we get the same value regardless of currently active
+        locale).
+        """
+        with override(None):
+            return force_text(self.verbose_name)
+
     def get_field(self, field):
         try:
             field = self._fields[field]
@@ -159,19 +170,19 @@ class ResourceBase(type):
             # special.
             return super_new(cls, name, bases, attrs)
 
-        attrs['__ordered__'] = [
-            key for key in attrs.keys() if key not in (
-                '__module__', '__qualname__')]
+        attrs['__ordered__'] = [key for key in attrs.keys()
+                                if key not in ('__module__', '__qualname__')]
 
         current_fields = []
-        for key, value in list(attrs.items()):
+        for key, value in attrs.items():
             if isinstance(value, Field):
                 if getattr(value, 'attname', None) is None:
-                    # setattr(value, '_field', key)
-                    setattr(value, 'attname', key)
-                    setattr(value, 'name', key)
+                    value.attname = key
+                    value.name = key
+
                 current_fields.append((key, value))
                 attrs.pop(key)
+
         current_fields.sort(key=lambda x: x[1].creation_counter)
         attrs['declared_fields'] = OrderedDict(current_fields)
 
@@ -179,15 +190,20 @@ class ResourceBase(type):
 
         # Create the meta class.
         attr_meta = attrs.pop('Meta', None)
+        abstract = getattr(attr_meta, 'abstract', False)
         if not attr_meta:
             meta = getattr(new_class, 'Meta', None)
         else:
             meta = attr_meta
-        # base_meta = getattr(new_class, '_meta', None)
 
         module = attrs.pop('__module__')
         app_config = apps.get_containing_app_config(module)
-        setattr(meta, 'app_config', app_config)
+
+        # TODO: Verify the purpose and use of this.
+        # Wrapped in a condition to avoid throwing an
+        # AttributeError when meta is None.
+        if meta:
+            meta.app_config = app_config
 
         if getattr(meta, 'app_label', None) is None:
 
@@ -217,7 +233,8 @@ class ResourceBase(type):
         else:
             kwargs = {}
 
-        setattr(new_class, '_meta', ResourceOptions(meta, **kwargs))
+        opts = ResourceOptions(meta, **kwargs)
+        new_class._meta = opts
 
         # Assign manager.
         manager = attrs.pop('objects', None)
@@ -240,6 +257,7 @@ class ResourceBase(type):
             for attr, value in base.__dict__.items():
                 if value is None and attr in declared_fields:
                     declared_fields.pop(attr)
+
         primary_key = None
         for attr, value in declared_fields.items():
             setattr(new_class, attr, value)
@@ -248,20 +266,31 @@ class ResourceBase(type):
                     raise ImproperlyConfigured('Multiple primary keys.')
                 else:
                     primary_key = value
-                    setattr(new_class._meta, '_pk_attr', attr)
+                    opts._pk_attr = attr
+
         new_class.base_fields = declared_fields
         new_class.declared_fields = declared_fields
+        new_class.DoesNotExist = RestServerException
 
-        setattr(new_class._meta, '_fields', declared_fields)
-        setattr(new_class._meta, 'concrete_fields', declared_fields)
-        setattr(new_class._meta, 'concrete_model', new_class)
-        setattr(new_class, 'DoesNotExist', RestServerException)
+        opts._fields = declared_fields
+        opts.concrete_fields = declared_fields
+        opts.concrete_model = new_class
 
         class State:
-            db = new_class._meta.client
+            db = opts.client
             adding = False
 
-        setattr(new_class, '_state', State())
+        new_class._state = State()
+
+        if abstract:
+            # Abstract resources are not registered, but subclasses should
+            # still be non-abstract by default. Resetting the attribute to
+            # False, following the behavior in Django models.
+            attr_meta.abstract = False
+            new_class.Meta = attr_meta
+        elif hasattr(opts, 'resources'):
+            # If resource registry was provided, use it to register new_class
+            opts.resources.register(new_class._meta.app_label, new_class)
 
         return new_class
 
