@@ -36,7 +36,7 @@ class JSONClientTests(TestCase):
         response = self.client.get(uri='http://localhost/api')
 
         data = response.content
-        self.assertIsInstance(data, basestring)
+        self.assertIsInstance(data, str)
         self.assertEqual(data, '{"foo": "bar"}')
 
 

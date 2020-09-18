@@ -26,12 +26,12 @@ def main(argv):
     api = LibraryApiClient('http://%s:%s/api/' % (ip_address, port))
     server = api.create_server(ip_address, int(port))
 
-    print 'Mock library webservice is running at http://%s:%s/api/' % (ip_address, port)
-    print 'Quit the server with CTRL-C.'
+    print('Mock library webservice is running at http://%s:%s/api/' % (ip_address, port))
+    print('Quit the server with CTRL-C.')
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print 'Closing server...'
+        print('Closing server...')
         server.socket.close()
 
 

@@ -1,6 +1,6 @@
 import logging
 import requests
-import urlparse
+from urllib.parse import urljoin
 
 
 logger = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ class ClientMixin(object):
         Returns a ``Request`` object.
         """
         if not uri.startswith(self.root_uri):
-            uri = urlparse.urljoin(self.root_uri, uri)
+            uri = urljoin(self.root_uri, uri)
 
         if headers is None:
             headers = {}
@@ -196,7 +196,7 @@ class BaseClient(object):
                 method=request.method.lower(),
                 data=request.body,
                 headers=request)
-        except Exception, e:
+        except Exception as e:
             # Logging.
             logger.critical(
                 '%(method)s %(uri)s\n%(headers)s\n\n%(body)s\n\n\nException: %(exception)s', {

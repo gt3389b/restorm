@@ -41,7 +41,7 @@ class MockClientTests(TestCase):
         url = '/some/url'
         response = client.get(url)
 
-        self.assertEqual(response.content, '{}')
+        self.assertEqual(response.content, {})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers['Foo'], 'Bar')
         self.assertEqual(response.request.uri, url)
@@ -126,9 +126,10 @@ class MockApiClientTests(TestCase):
 
         book = Book.objects.get(isbn='978-1441413024', client=self.client)
         self.assertEqual(book.title, 'Dive into Python')
-        self.assertEqual(book.author.absolute_url, '%sauthor/1' % self.client.root_uri)
+        self.assertEqual(book.author, '%sauthor/1' % self.client.root_uri)
 
         author = book.author
+        print(author)
         self.assertEqual(author.name, 'Mark Pilgrim')
 
 

@@ -1,3 +1,4 @@
+import django
 from django.apps import apps, AppConfig
 from django.contrib.auth.management import _get_all_permissions
 from django.core import exceptions
@@ -163,3 +164,6 @@ class RestormAppConfig(AppConfig):
         """
         if self.auto_create_permissions:
             post_migrate.connect(update_ctypes_permissions)
+
+class RestormAppSetup():
+    django.setup()

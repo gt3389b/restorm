@@ -1,7 +1,7 @@
-import urlparse
+from urllib.parse import urljoin
 import os
 from requests import Response
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import http.server
 from restorm.clients.base import ClientMixin
 
 
@@ -37,7 +37,9 @@ class StringResponse(MockResponse):
 
     """
     def __init__(self, headers, content):
-        super(StringResponse, self).__init__(headers, unicode(content))
+        if isinstance(content, bytes):
+            content = content.decode()
+        super(StringResponse, self).__init__(headers, content)
 
 
 class FileResponse(MockResponse):
@@ -74,7 +76,7 @@ class BaseMockClient(object):
             raise ValueError('Ran out of responses when requesting: %s' % uri)
 
         if not uri.startswith(self.root_uri):
-            urlparse.urljoin(self.root_uri, uri)
+            urljoin(self.root_uri, uri)
 
         request = self.create_request(uri, method, body, headers)
 
@@ -170,7 +172,7 @@ class BaseMockApiClient(object):
         ``get_response_from_request`` method for custom response logic.
         """
         if not uri.startswith(self.root_uri):
-            uri = urlparse.urljoin(self.root_uri, uri)
+            uri = urljoin(self.root_uri, uri)
 
         request = self.create_request(uri, method, body, headers)
 
@@ -202,7 +204,7 @@ class BaseMockApiClient(object):
         return HTTPServer((ip_address, port), handler)
 
 
-class MockHandler(BaseHTTPRequestHandler):
+class MockHandler(http.server.BaseHTTPRequestHandler):
     mock_api = None
 
     def do_GET(self):

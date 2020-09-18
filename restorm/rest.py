@@ -13,7 +13,7 @@ class RestObject(object):
         if data is not None:
             for k, v in data.items():
                 # FIXME: Checking for http only is a bit crude.
-                if isinstance(v, basestring) and v.startswith('http'):
+                if isinstance(v, str) and v.startswith('http'):
                     if not hasattr(cls, k):
                         related_resources[k] = RelatedResource(k, resource)
 

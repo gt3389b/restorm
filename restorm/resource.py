@@ -100,6 +100,11 @@ class ResourceOptions(object):
                         setattr(self, "_{}".format(attr_name), value)
                 elif hasattr(meta, attr_name):
                     setattr(self, attr_name, getattr(meta, attr_name))
+                    
+            if getattr(self, 'resource_name', None) == None:
+                default=getattr(self, 'app_label', self.__name__).lower()
+                setattr(self, 'resource_name', default)
+
         if self.client is None:
             self.client = settings.DEFAULT_CLIENT
 
@@ -172,7 +177,6 @@ class ResourceBase(type):
 
         attrs['__ordered__'] = [key for key in attrs.keys()
                                 if key not in ('__module__', '__qualname__')]
-
         current_fields = []
         for key, value in attrs.items():
             if isinstance(value, Field):
@@ -181,7 +185,9 @@ class ResourceBase(type):
                     value.name = key
 
                 current_fields.append((key, value))
-                attrs.pop(key)
+
+        for key,value in current_fields:
+            attrs.pop(key)
 
         current_fields.sort(key=lambda x: x[1].creation_counter)
         attrs['declared_fields'] = OrderedDict(current_fields)
@@ -214,10 +220,10 @@ class ResourceBase(type):
                 # find the last occurrence of 'models'
                 package_components.reverse()
                 try:
-                    app_label_index = package_components.index(
-                        MODELS_MODULE_NAME) + 1
+                    app_label_index = package_components.index(MODELS_MODULE_NAME) + 1
                 except ValueError:
-                    app_label_index = 1
+                    #app_label_index = 1
+                    app_label_index = 0
                 try:
                     kwargs = {"app_label": package_components[app_label_index]}
                 except IndexError:
@@ -232,6 +238,9 @@ class ResourceBase(type):
 
         else:
             kwargs = {}
+
+        if not 'resource_name' in  meta.__dict__.copy():
+            meta.resource_name = new_class.__name__
 
         opts = ResourceOptions(meta, **kwargs)
         new_class._meta = opts
@@ -312,7 +321,7 @@ class ResourceList(list):
             [Resource(item, self.client) for item in data])
 
 
-class Resource(object):
+class Resource(object, metaclass=ResourceBase):
     """
     Class that holds information about a resource.
 
@@ -448,7 +457,7 @@ class Resource(object):
                 response.request.uri, response.status_code, response.content))
 
 
-class SimpleResource(object):
+class SimpleResource(object, metaclass=ResourceBase):
     """
     Class that holds information about a resource.
 

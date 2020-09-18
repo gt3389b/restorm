@@ -2,7 +2,12 @@ import re
 import sys
 
 from django.utils import six
-from django.utils.importlib import import_module
+try:
+    # Django versions >= 1.9
+    from django.utils.module_loading import import_module
+except ImportError:
+    # Django versions < 1.9
+    from django.utils.importlib import import_module
 
 
 def reverse(pattern, **kwargs):
@@ -16,7 +21,7 @@ def reverse(pattern, **kwargs):
 
     try:
         result = template % kwargs
-    except KeyError, e:
+    except KeyError as e:
         raise ValueError('The URL pattern requires %s as named argument.' % e)
 
     return result

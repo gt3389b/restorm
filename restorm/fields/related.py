@@ -97,7 +97,7 @@ class RelatedResource(Field):
     def __init__(self, field, resource, get_itm_params=None, **kwargs):
         super(RelatedResource, self).__init__(**kwargs)
         self.is_relation = True
-        if isinstance(resource, basestring):
+        if isinstance(resource, str):
             def lazy_resource(resource_str):
                 def import_resource():
                     return import_string(resource_str)
@@ -192,7 +192,7 @@ class ToManyField(RelatedResource):
 
     def __init__(self, *args, **kwargs):
         through = kwargs.pop('through', None)
-        if through and isinstance(through, basestring):
+        if through and isinstance(through, str):
             def lazy_resource(resource_str):
                 def import_resource():
                     return import_string(resource_str)

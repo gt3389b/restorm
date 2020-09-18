@@ -4,11 +4,13 @@ from restorm.examples.mock.api import LibraryApiClient, TicketApiClient
 from restorm import fields
 from restorm.resource import ResourceManager, ResourceOptions, Resource, SimpleResource
 from restorm.query import RestQuerySet
+from restorm.apps import RestormAppSetup
 
 
 class ResourceTests(TestCase):
 
     def setUp(self):
+        RestormAppSetup()
         self.client = LibraryApiClient()
 
         class Author(Resource):
@@ -115,7 +117,7 @@ class ResourceTests(TestCase):
         # Cannot test AttributeError with self.assertRaises
         try:
             book.objects.all()
-        except AttributeError, e:
+        except AttributeError as e:
             self.assertEqual('%s' % e, 'Manager is not accessible via Book instances')
 
     def test_custom_manager(self):
@@ -135,7 +137,7 @@ class ResourceTests(TestCase):
         # Cannot test AttributeError with self.assertRaises
         try:
             book.objects
-        except AttributeError, e:
+        except AttributeError as e:
             self.assertEqual('%s' % e, 'Manager is not accessible via Book instances')
 
     def test_custom_functions_and_attributes(self):
@@ -190,6 +192,7 @@ class ResourceTests(TestCase):
 class ResourceCreateAndUpdateTests(TestCase):
 
     def setUp(self):
+        RestormAppSetup()
         self.client = TicketApiClient()
 
         class Issue(Resource):
@@ -220,6 +223,7 @@ class ResourceCreateAndUpdateTests(TestCase):
 
 class SimpleResourceTests(TestCase):
     def setUp(self):
+        RestormAppSetup()
         self.client = LibraryApiClient()
 
     def test_get(self):

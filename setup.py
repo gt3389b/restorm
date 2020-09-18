@@ -12,10 +12,11 @@ def read_file(name):
 readme = read_file('README.rst')
 changes = read_file('CHANGES.rst')
 
-
 install_requires = [
     'requests>=2.7.0',
-    'django==1.8.16',
+    'django==2.2',
+    'jsonfield',
+    'django-jsonfield-compat',
 ]
 tests_require = [
     'nose',

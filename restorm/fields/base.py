@@ -11,8 +11,10 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django.utils.encoding import smart_text
 from django.utils.text import capfirst
-from jsonfield.encoder import JSONEncoder
-from jsonfield.fields import JSONFormField
+#from jsonfield.encoder import JSONEncoder
+#from jsonfield.fields import JSONFormField
+#from jsonfield_compat.fields import JSONField
+#from jsonfield_compat.forms import JSONFormField
 
 BLANK_CHOICE_DASH = [("", "---------")]
 
@@ -239,7 +241,8 @@ class CharField(Field):
 
     def clean(self, instance, value):
         if value is not None:
-            value = unicode(value)
+            if not isinstance(value, str):
+                value = value.decode()
             if self.max_length:
                 value = value[:self.max_length]
         return value
@@ -259,7 +262,8 @@ class TextField(Field):
         super(TextField, self).__init__(**kwargs)
 
     def clean(self, instance, value):
-        value = unicode(value)
+        if not isinstance(value, str):
+            value = value.decode()
         if self.max_length:
             value = value[:self.max_length]
         return value
@@ -274,9 +278,10 @@ class TextField(Field):
 
 
 class JSONField(TextField):
-    form_class = JSONFormField
+    #form_class = JSONFormField
 
     def __init__(self, **kwargs):
+        raise Exception("JSONField")
         self.dump_kwargs = kwargs.pop('dump_kwargs', {
             'cls': JSONEncoder,
             'separators': (',', ':')
@@ -289,8 +294,8 @@ class JSONField(TextField):
 
     def formfield(self, **kwargs):
 
-        if "form_class" not in kwargs:
-            kwargs["form_class"] = self.form_class
+        #if "form_class" not in kwargs:
+        #    kwargs["form_class"] = self.form_class
 
         field = super(JSONField, self).formfield(**kwargs)
         field.load_kwargs = self.load_kwargs
@@ -335,7 +340,7 @@ class URLField(CharField):
         validate = URLValidator()
         try:
             validate(value)
-        except ValidationError, e:
+        except ValidationError as e:
             raise e
         return value
 
