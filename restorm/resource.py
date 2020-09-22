@@ -346,7 +346,17 @@ class Resource(object, metaclass=ResourceBase):
         self._list_pattern = ResourcePattern.parse(self._meta.list)
 
     def __unicode__(self):
-        return unicode(self.absolute_url)
+        if self.absolute_url:
+            if not isinstance(self.absolute_url, str):
+                return self.absolute_url.decode()
+        return self.absolute_url
+
+    # need to fix code when it assumes repr for str
+    def __str__(self):
+        if self.absolute_url:
+            return self.__unicode__()
+        else:
+            return '' 
 
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())

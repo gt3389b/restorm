@@ -138,6 +138,13 @@ class RelatedResource(Field):
                 data = ''
             setattr(instance, self.name, data)
 
+    def __get__(self, instance, value=None):
+        # may be easier to call the Fields parent first
+        if instance is None or not hasattr(instance, 'client'):
+            return self
+        itm_params = self._get_itm_params(instance.data.get(self.attname, self.default), self.rel.to)
+        return self._resource._default_manager.get(**itm_params)
+
     def __set__(self, instance, value):
         if instance is None:
             raise AttributeError(
