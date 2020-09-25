@@ -1,6 +1,6 @@
-.. image:: https://secure.travis-ci.org/joeribekker/restorm.png?branch=master
+.. image:: https://secure.travis-ci.org/gt3399b/restorm.png?branch=master
     :alt: Build Status
-    :target: http://travis-ci.org/joeribekker/restorm
+    :target: http://travis-ci.org/gt3399b/restorm
 
 RestORM-setuptools
 ==================
