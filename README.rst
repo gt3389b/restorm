@@ -1,6 +1,6 @@
-.. image:: https://secure.travis-ci.org/gt3399b/restorm.png?branch=master
+.. image:: https://travis-ci.org/gt3389b/restorm.svg?branch=master
     :alt: Build Status
-    :target: http://travis-ci.org/gt3399b/restorm
+    :target: https://travis-ci.org/gt3389b/restorm
 
 RestORM-setuptools
 ==================
@@ -117,4 +117,4 @@ RestORM is on PyPI, so you can simply use::
 
 If you want the latest development version, get the code from Github::
 
-    $ pip install -e git+git://github.com/goinnn/restorm.git#egg=restorm
+    $ pip install -e git+git://github.com/gt3389b/restorm.git#egg=restorm
