@@ -20,6 +20,8 @@ class RestQuerySet(object):
         self._page_size = model._meta.page_size
         self._item_pattern = ResourcePattern.parse(self.opts.item)
         self._list_pattern = ResourcePattern.parse(self.opts.list)
+        self._create_pattern = ResourcePattern.parse(self.opts.create)
+        self._delete_pattern = ResourcePattern.parse(self.opts.delete)
         self.ordered = False
 
     def _request_list(self, query=None, uri=None, **kwargs):
@@ -168,9 +170,15 @@ class RestQuerySet(object):
 
     def get(self, **kwargs):
         response = self._request_item(**kwargs)
+
+        #create delete url
+        delete_url = self._delete_pattern.get_absolute_url(
+            root=self.opts.root, query=kwargs.get('query'), **kwargs)
+
         obj = self.model(
             data=response.content, client=self._client,
-            absolute_url=response.request.uri)
+            absolute_url=response.request.uri,
+            delete_url=delete_url)
         return obj
 
     def count(self):

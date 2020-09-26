@@ -17,7 +17,7 @@ from .registry import registry
 
 class ResourceOptions(object):
     DEFAULT_NAMES = (
-        'list', 'item', 'root', 'app_label', 'resource_name', 'verbose_name',
+        'list', 'item', 'create', 'delete', 'root', 'app_label', 'resource_name', 'verbose_name',
         'verbose_name_plural', 'client', 'app_config', 'page_size', 'page_size_param')
 
     def __init__(self, meta, app_label=None):
@@ -28,6 +28,12 @@ class ResourceOptions(object):
         # Represents this Resource's item URI pattern. For example: A single
         # object of this resource can be found at http://localhost/api/book/1.
         self.item = ''
+
+        # Represents this Resource's create item URI pattern. 
+        self.create = ''
+
+        # Represents this Resource's delete item URI pattern. 
+        self.delete = ''
 
         # Indicates the root of the resource. In some cases, a resource is
         # found on a different domain or service. For example: If the regular
@@ -331,9 +337,10 @@ class Resource(object, metaclass=ResourceBase):
 
     objects = None
 
-    def __init__(self, data={}, client=None, absolute_url=None):
+    def __init__(self, data={}, client=None, absolute_url=None, delete_url=None):
         self.client = client or self._meta.client
         self.absolute_url = absolute_url
+        self.delete_url = delete_url
         assert type(data) == dict, (type(data), data)
         self.data = data.copy()
         for key, value in self._meta.get_fields().items():
@@ -342,8 +349,13 @@ class Resource(object, metaclass=ResourceBase):
 
         if self.absolute_url is None and self._meta.pk.attname not in self.data:
             self._state.adding = True
+        
         self._item_pattern = ResourcePattern.parse(self._meta.item)
         self._list_pattern = ResourcePattern.parse(self._meta.list)
+
+        # default 
+        self._create_pattern = ResourcePattern.parse(self._meta.list) if self._meta.create == '' else ResourcePattern.parse(self._meta.create)
+        self._delete_pattern = ResourcePattern.parse(self._meta.item) if self._meta.delete == '' else ResourcePattern.parse(self._meta.delete)
 
     def __unicode__(self):
         if self.absolute_url:
@@ -416,13 +428,14 @@ class Resource(object, metaclass=ResourceBase):
             return
         if not self.absolute_url:
             created = True
-            absolute_url = self._list_pattern.get_absolute_url(
-                root=self._meta.root)
+            absolute_url = self._create_pattern.get_absolute_url(root=self._meta.root)
             response = self.client.post(absolute_url, obj_data)
         else:
             created = False
             absolute_url = self.absolute_url
-            response = self.client.put(self.absolute_url, obj_data)
+            response = self.client.put(absolute_url, obj_data)
+
+        print(response, response.status_code, response.raw_content)
 
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
@@ -450,7 +463,9 @@ class Resource(object, metaclass=ResourceBase):
         contents of this body is returned, otherwise ``None``.
         """
 
-        response = self.client.delete(self.absolute_url)
+        print("+++++", self.delete_url)
+        delete_url = self.delete_url
+        response = self.client.delete(delete_url)
 
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
@@ -477,9 +492,10 @@ class SimpleResource(object, metaclass=ResourceBase):
 
     objects = None
 
-    def __init__(self, data=None, client=None, absolute_url=None):
+    def __init__(self, data=None, client=None, absolute_url=None, delete_url=None):
         self.client = client
         self.absolute_url = absolute_url
+        self.delete_url = delete_url
 
         self.data = data
 
@@ -490,4 +506,5 @@ class SimpleResource(object, metaclass=ResourceBase):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())
 
     def save(self):
+        print("simp save", self.absolute_url, self.data)
         self.client.put(self.absolute_url, self.data)
