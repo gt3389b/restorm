@@ -435,8 +435,6 @@ class Resource(object, metaclass=ResourceBase):
             absolute_url = self.absolute_url
             response = self.client.put(absolute_url, obj_data)
 
-        print(response, response.status_code, response.raw_content)
-
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
             if response.content and isinstance(response.content, dict):
@@ -462,8 +460,6 @@ class Resource(object, metaclass=ResourceBase):
         freedom of API implementations. If there is a body in the response, the
         contents of this body is returned, otherwise ``None``.
         """
-
-        print("+++++", self.delete_url)
         delete_url = self.delete_url
         response = self.client.delete(delete_url)
 
@@ -506,5 +502,4 @@ class SimpleResource(object, metaclass=ResourceBase):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())
 
     def save(self):
-        print("simp save", self.absolute_url, self.data)
         self.client.put(self.absolute_url, self.data)
