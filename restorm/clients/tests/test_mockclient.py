@@ -1,4 +1,4 @@
-import os
+import os, json
 from requests import Response
 from unittest2 import TestCase
 
@@ -126,7 +126,8 @@ class MockApiClientTests(TestCase):
 
         book = Book.objects.get(isbn='978-1441413024', client=self.client)
         self.assertEqual(book.title, 'Dive into Python')
-        self.assertEqual(str(book.author), '%sauthor/1' % self.client.root_uri)
+        #self.assertEqual(str(book.author), '%sauthor/1' % self.client.root_uri)
+        self.assertEqual(json.loads(str(book.author))['id'], 1)
 
         author = book.author
         self.assertEqual(author.name, 'Mark Pilgrim')

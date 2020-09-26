@@ -1,4 +1,5 @@
 from restorm.clients.base import BaseClient
+from restorm.clients.jsonclient import JSONClient
 from restorm.exceptions import RestServerException
 from restorm.patterns import ResourcePattern
 
@@ -160,6 +161,13 @@ class RestQuerySet(object):
             root=self.opts.root, query=query, **kwargs)
 
         response = self._client.get(absolute_url)
+
+        # fix for xconf
+        if isinstance(response.content, bytes):
+            response.content = response.content.decode()
+            if response.content == '':
+                if isinstance(self._client, JSONClient):
+                    response.content = {}
 
         if response.status_code not in VALID_GET_STATUS_RESPONSES:
             raise RestServerException('Cannot get "%s" (%d): %s' % (

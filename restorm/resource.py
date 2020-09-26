@@ -1,5 +1,5 @@
 from collections import OrderedDict
-import sys
+import sys, json
 
 from django.apps import apps
 from django.apps.config import MODELS_MODULE_NAME
@@ -365,10 +365,11 @@ class Resource(object, metaclass=ResourceBase):
 
     # need to fix code when it assumes repr for str
     def __str__(self):
-        if self.absolute_url:
-            return self.__unicode__()
-        else:
-            return '' 
+        #if self.absolute_url:
+        #    return self.__unicode__()
+        #else:
+        #    return '' 
+        return json.dumps(self.data)
 
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.__unicode__())
@@ -432,8 +433,9 @@ class Resource(object, metaclass=ResourceBase):
             response = self.client.post(absolute_url, obj_data)
         else:
             created = False
-            absolute_url = self.absolute_url
-            response = self.client.put(absolute_url, obj_data)
+            #absolute_url = self.absolute_url
+            #absolute_url = self._create_pattern.get_absolute_url(root=self._meta.root)
+            response = self.client.put(self.absolute_url, obj_data)
 
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
@@ -442,6 +444,11 @@ class Resource(object, metaclass=ResourceBase):
                 pk_attr = self._meta.pk.attname
                 if not self.absolute_url:
                     self.absolute_url = self._item_pattern.get_absolute_url(
+                        root=self._meta.root, **{pk_attr: self.data[pk_attr]})
+
+                # create a delete url for this resource
+                if not self.delete_url:
+                    self.delete_url = self._delete_pattern.get_absolute_url(
                         root=self._meta.root, **{pk_attr: self.data[pk_attr]})
             return created
         elif response.status_code in [400]:
@@ -460,11 +467,12 @@ class Resource(object, metaclass=ResourceBase):
         freedom of API implementations. If there is a body in the response, the
         contents of this body is returned, otherwise ``None``.
         """
-        delete_url = self.delete_url
-        response = self.client.delete(delete_url)
+        response = self.client.delete(self.delete_url)
 
         # Although 204 is the best HTTP status code for a valid PUT response.
         if response.status_code in [200, 201, 204]:
+            self.absolute_url = None
+            self.delete_url = None
             if response.content:
                 return response.content
             else:
