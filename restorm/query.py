@@ -122,7 +122,7 @@ class RestQuerySet(object):
 
     def __iter__(self):
         self._fetch_all()
-        return iter(self._result_cache.values())
+        return iter([str(x) for x in self._result_cache.values()])
 
     def __bool__(self):
         return bool(self.count())
